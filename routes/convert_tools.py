@@ -3,6 +3,13 @@ import fitz  # PyMuPDF
 from flask import Blueprint, render_template, request, send_file, jsonify
 from PIL import Image
 import img2pdf
+from docx import Document as DocxDocument
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 
 try:
     from pdf2docx import Converter as Pdf2DocxConverter
@@ -19,9 +26,9 @@ bp = Blueprint("convert", __name__)
 def to_pdf_page():
     return render_template("upload_tool.html",
         title="Files to PDF",
-        description="Convert images and text files to PDF",
+        description="Convert images, Word documents, and text files to PDF",
         endpoint="/convert/to-pdf",
-        accept=".jpg,.jpeg,.png,.bmp,.tiff,.webp,.txt",
+        accept=".jpg,.jpeg,.png,.bmp,.tiff,.webp,.txt,.docx",
         multiple=True,
         options=[])
 
@@ -66,6 +73,100 @@ def pdf_to_text_page():
         options=[])
 
 
+# ── Helpers ──────────────────────────────────────
+
+def _docx_to_pdf(data: bytes) -> bytes:
+    """Convert a .docx file (as bytes) to PDF bytes using python-docx + reportlab."""
+    doc = DocxDocument(io.BytesIO(data))
+    buf = io.BytesIO()
+
+    styles = getSampleStyleSheet()
+    normal = styles["Normal"]
+    normal.fontName = "Helvetica"
+    normal.fontSize = 11
+    normal.leading = 14
+
+    heading_styles = {}
+    for level in range(1, 4):
+        size = {1: 18, 2: 15, 3: 13}[level]
+        heading_styles[level] = ParagraphStyle(
+            f"Heading{level}", parent=normal,
+            fontName="Helvetica-Bold", fontSize=size, leading=size + 4,
+            spaceBefore=12, spaceAfter=6,
+        )
+
+    pdf = SimpleDocTemplate(buf, pagesize=A4,
+                            leftMargin=inch, rightMargin=inch,
+                            topMargin=inch, bottomMargin=inch)
+    story = []
+
+    for para in doc.paragraphs:
+        text = para.text.strip()
+        if not text:
+            story.append(Spacer(1, 6))
+            continue
+
+        style_name = para.style.name.lower() if para.style else ""
+
+        if "heading 1" in style_name:
+            story.append(Paragraph(text, heading_styles[1]))
+        elif "heading 2" in style_name:
+            story.append(Paragraph(text, heading_styles[2]))
+        elif "heading 3" in style_name:
+            story.append(Paragraph(text, heading_styles[3]))
+        else:
+            # Preserve basic inline formatting
+            rich = _build_rich_text(para)
+            story.append(Paragraph(rich, normal))
+
+    # Handle tables
+    for table in doc.tables:
+        tdata = []
+        for row in table.rows:
+            tdata.append([cell.text for cell in row.cells])
+        if tdata:
+            t = Table(tdata, repeatRows=1)
+            t.setStyle(TableStyle([
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                ("BACKGROUND", (0, 0), (-1, 0), colors.Color(0.9, 0.9, 0.95)),
+                ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                ("FONTSIZE", (0, 0), (-1, -1), 10),
+                ("TOPPADDING", (0, 0), (-1, -1), 4),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ("LEFTPADDING", (0, 0), (-1, -1), 6),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+            ]))
+            story.append(Spacer(1, 8))
+            story.append(t)
+            story.append(Spacer(1, 8))
+
+    if not story:
+        story.append(Paragraph("(empty document)", normal))
+
+    pdf.build(story)
+    return buf.getvalue()
+
+
+def _build_rich_text(para) -> str:
+    """Convert a python-docx paragraph's runs into reportlab-compatible rich text."""
+    parts = []
+    for run in para.runs:
+        text = run.text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        if not text:
+            continue
+        if run.bold and run.italic:
+            parts.append(f"<b><i>{text}</i></b>")
+        elif run.bold:
+            parts.append(f"<b>{text}</b>")
+        elif run.italic:
+            parts.append(f"<i>{text}</i>")
+        elif run.underline:
+            parts.append(f"<u>{text}</u>")
+        else:
+            parts.append(text)
+    return "".join(parts) or para.text
+
+
 # ── Processing Routes ────────────────────────────
 
 @bp.route("/to-pdf", methods=["POST"])
@@ -80,14 +181,19 @@ def to_pdf():
         name = f.filename.lower()
         data = f.read()
 
-        if name.endswith(".txt"):
+        if name.endswith(".docx"):
+            # Word document → PDF pages
+            try:
+                docx_pdf_bytes = _docx_to_pdf(data)
+                docx_pdf = fitz.open(stream=docx_pdf_bytes, filetype="pdf")
+                pdf_doc.insert_pdf(docx_pdf)
+                docx_pdf.close()
+            except Exception as e:
+                return jsonify(error=f"Error converting {f.filename}: {str(e)}"), 400
+        elif name.endswith(".txt"):
             # Text file → PDF page
             text = data.decode("utf-8", errors="replace")
             page = pdf_doc.new_page(width=595, height=842)  # A4
-            tw = fitz.TextWriter(page.rect)
-            font = fitz.Font("helv")
-            # Insert text with wrapping
-            where = fitz.Point(50, 50)
             rect = fitz.Rect(50, 50, 545, 792)
             page.insert_textbox(rect, text, fontsize=11, fontname="helv")
         else:
