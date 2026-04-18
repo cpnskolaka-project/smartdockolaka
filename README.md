@@ -8,6 +8,16 @@ A lightweight, self-hosted web app that bundles 48 everyday utilities into a sin
 
 ---
 
+## Screenshots
+
+![Home Page](screenshots/1.png)
+
+![Tool Page](screenshots/2.png)
+
+![Tool Page](screenshots/3.png)
+
+---
+
 ## Features
 
 ### Document Conversion
