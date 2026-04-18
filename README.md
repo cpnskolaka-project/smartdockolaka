@@ -13,7 +13,7 @@ A lightweight, self-hosted web app that bundles 33 everyday utilities into a sin
 ### Document Conversion
 | Tool | Description |
 |------|-------------|
-| **Files to PDF** | Convert images (JPG, PNG, BMP, TIFF, WebP) and text files to PDF |
+| **Files to PDF** | Convert images (JPG, PNG, BMP, TIFF, WebP), Word documents (.docx), and text files to PDF |
 | **PDF to Word** | Convert PDF documents to `.docx` format |
 | **PDF to Images** | Export each PDF page as PNG or JPG (configurable DPI) |
 | **PDF to Text** | Extract all text content from a PDF |
@@ -79,7 +79,7 @@ A lightweight, self-hosted web app that bundles 33 everyday utilities into a sin
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/your-everyday-tools.git
+git clone https://github.com/listyantidewi1/your-everyday-tools
 cd your-everyday-tools
 
 # Create a virtual environment (recommended)
