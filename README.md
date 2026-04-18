@@ -1,6 +1,6 @@
 # Your Everyday Tools
 
-A lightweight, self-hosted web app that bundles 33 everyday utilities into a single interface. Built with Python + Flask, zero JavaScript frameworks, and minimal CSS — no bloat, just tools.
+A lightweight, self-hosted web app that bundles 48 everyday utilities into a single interface. Built with Python + Flask, zero JavaScript frameworks, and minimal CSS — no bloat, just tools.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.x-green)
@@ -17,6 +17,7 @@ A lightweight, self-hosted web app that bundles 33 everyday utilities into a sin
 | **PDF to Word** | Convert PDF documents to `.docx` format |
 | **PDF to Images** | Export each PDF page as PNG or JPG (configurable DPI) |
 | **PDF to Text** | Extract all text content from a PDF |
+| **HTML to PDF** | Convert HTML content to a PDF document |
 
 ### PDF Tools
 | Tool | Description |
@@ -41,6 +42,9 @@ A lightweight, self-hosted web app that bundles 33 everyday utilities into a sin
 | **Crop Image** | Crop by aspect ratio (1:1, 4:3, 16:9, etc.) or custom coordinates |
 | **Rotate / Flip** | Rotate 90/180/270 degrees, flip horizontal or vertical |
 | **Add Watermark** | Add text watermark with configurable position, opacity, size, and tiled mode |
+| **EXIF Viewer** | View or strip image metadata (EXIF data) for privacy |
+| **Favicon Generator** | Create .ico favicons from any image with multiple size options |
+| **Image to Text (OCR)** | Extract text from images using optical character recognition |
 
 ### Text & Data (client-side, no upload needed)
 | Tool | Description |
@@ -51,6 +55,12 @@ A lightweight, self-hosted web app that bundles 33 everyday utilities into a sin
 | **URL Encode** | Encode and decode URL components |
 | **Word Counter** | Count words, characters, sentences, paragraphs, and estimate reading time |
 | **Markdown Preview** | Live Markdown-to-HTML preview |
+| **Case Converter** | Convert between UPPER, lower, Title, camelCase, snake_case, kebab-case, PascalCase |
+| **Text Diff** | Compare two texts side by side with highlighted additions and deletions |
+| **Regex Tester** | Test regular expressions with live match highlighting and group extraction |
+| **Slug Generator** | Create URL-friendly slugs from any text |
+| **JSON / YAML** | Convert between JSON and YAML formats |
+| **Lorem Ipsum** | Generate placeholder text by paragraphs, sentences, or words |
 
 ### Calculators (client-side)
 | Tool | Description |
@@ -60,12 +70,21 @@ A lightweight, self-hosted web app that bundles 33 everyday utilities into a sin
 | **Color Converter** | Convert between HEX, RGB, and HSL with live preview and color picker |
 | **Percentage Calc** | Four common percentage calculations in one page |
 | **Date Calculator** | Date difference, add/subtract days, day-of-week lookup |
+| **Timestamp Converter** | Convert between Unix timestamps and human-readable dates (local, UTC, ISO 8601) |
+| **Number Base Converter** | Convert between decimal, binary, octal, and hexadecimal |
+| **Pomodoro Timer** | Focus timer with configurable work/break intervals and session tracking |
 
 ### QR Code
 | Tool | Description |
 |------|-------------|
 | **Generate QR** | Create QR codes from text/URLs with custom size, border, and color |
 | **Read QR** | Decode QR codes from uploaded images |
+
+### Security
+| Tool | Description |
+|------|-------------|
+| **Password Generator** | Generate strong random passwords with configurable length, character types, and entropy display |
+| **Hash Generator** | Generate MD5, SHA-1, SHA-256, and SHA-512 hashes from text |
 
 ---
 
@@ -110,11 +129,12 @@ The core app works out of the box with the main dependencies. Some features requ
 | `rembg` | Remove Background | Installs ONNX Runtime (~500 MB). The app works without it and shows a helpful message if missing. |
 | `pyzbar` | Read QR Code | Requires the [ZBar](https://github.com/NaturalHistoryMuseum/pyzbar#installation) shared library on your system. |
 | `pdf2docx` | PDF to Word | Pure Python, but conversion quality depends on PDF complexity. |
+| `pytesseract` | Image to Text (OCR) | Requires the [Tesseract](https://github.com/tesseract-ocr/tesseract) binary installed on your system. |
 
 If you only need the core tools, install the minimal set:
 
 ```bash
-pip install Flask Pillow PyMuPDF "qrcode[pil]" markdown reportlab img2pdf
+pip install Flask Pillow PyMuPDF "qrcode[pil]" markdown reportlab img2pdf python-docx
 ```
 
 ---
@@ -133,7 +153,8 @@ your-everyday-tools/
 │   ├── image_tools.py              # Image processing endpoints
 │   ├── text_tools.py               # Text & data tool page routes
 │   ├── calculator_tools.py         # Calculator page routes
-│   └── qr_tools.py                # QR code endpoints
+│   ├── qr_tools.py                 # QR code endpoints
+│   └── security_tools.py           # Security tool page routes
 ├── templates/
 │   ├── base.html                   # Main layout (sidebar + content area)
 │   ├── index.html                  # Home page with tool cards
@@ -144,12 +165,23 @@ your-everyday-tools/
 │       ├── color_converter.html
 │       ├── percentage_calc.html
 │       ├── date_calc.html
+│       ├── timestamp_converter.html
+│       ├── number_base.html
+│       ├── pomodoro.html
 │       ├── json_formatter.html
 │       ├── csv_json.html
+│       ├── json_yaml.html
 │       ├── base64.html
 │       ├── url_encode.html
 │       ├── word_counter.html
-│       └── markdown_preview.html
+│       ├── markdown_preview.html
+│       ├── case_converter.html
+│       ├── text_diff.html
+│       ├── regex_tester.html
+│       ├── slug_generator.html
+│       ├── lorem_ipsum.html
+│       ├── password_generator.html
+│       └── hash_generator.html
 └── static/
     ├── css/style.css               # All styles (~400 lines, no framework)
     └── js/main.js                  # File upload, AJAX, sidebar, shared logic
@@ -157,11 +189,11 @@ your-everyday-tools/
 
 ### Architecture Notes
 
-- **One universal template** — `upload_tool.html` powers all 20+ server-side tools. Each route passes title, description, accepted file types, and form options as template variables. No per-tool template duplication.
-- **Client-side tools** (text utilities, calculators) run entirely in the browser with vanilla JavaScript — zero server round-trips.
+- **One universal template** — `upload_tool.html` powers all 25+ server-side tools. Each route passes title, description, accepted file types, and form options as template variables. No per-tool template duplication.
+- **Client-side tools** (text utilities, calculators, security tools) run entirely in the browser with vanilla JavaScript — zero server round-trips.
 - **In-memory processing** — all file operations use `BytesIO`. No temporary files are written to disk.
 - **No CSS framework** — custom CSS with CSS Grid, Flexbox, and CSS custom properties. The only external resource is Bootstrap Icons via CDN (~100 KB) for the icon set.
-- **Graceful degradation** — heavy optional packages (`rembg`, `pyzbar`, `pdf2docx`) are checked at import time. If missing, the affected tool shows a clear install instruction instead of crashing.
+- **Graceful degradation** — heavy optional packages (`rembg`, `pyzbar`, `pdf2docx`, `pytesseract`) are checked at import time. If missing, the affected tool shows a clear install instruction instead of crashing.
 
 ---
 

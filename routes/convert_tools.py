@@ -330,3 +330,30 @@ def pdf_to_text():
 
     doc.close()
     return jsonify(text="\n".join(text_parts))
+
+
+@bp.route("/html-to-pdf", methods=["POST"])
+def html_to_pdf():
+    html = request.form.get("text", "").strip()
+    if not html:
+        return jsonify(error="Please enter some HTML content."), 400
+
+    doc = fitz.open()
+    page = doc.new_page(width=595, height=842)  # A4
+
+    # Wrap in basic structure if no <html> tag present
+    if "<html" not in html.lower():
+        html = f"<html><body>{html}</body></html>"
+
+    try:
+        page.insert_htmlbox(fitz.Rect(50, 50, 545, 792), html)
+    except Exception as e:
+        return jsonify(error=f"HTML rendering failed: {str(e)}"), 400
+
+    output = io.BytesIO()
+    doc.save(output)
+    doc.close()
+    output.seek(0)
+
+    return send_file(output, mimetype="application/pdf",
+                     as_attachment=True, download_name="converted.pdf")
