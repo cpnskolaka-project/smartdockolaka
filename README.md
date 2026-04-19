@@ -1,6 +1,6 @@
 # Your Everyday Tools
 
-A lightweight, self-hosted web app that bundles 51 everyday utilities into a single interface. Built with Python + Flask, zero JavaScript frameworks, and minimal CSS — no bloat, just tools.
+A lightweight, self-hosted web app that bundles 57 everyday utilities into a single interface. Built with Python + Flask, zero JavaScript frameworks, and minimal CSS — no bloat, just tools.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.x-green)
@@ -29,6 +29,16 @@ A lightweight, self-hosted web app that bundles 51 everyday utilities into a sin
 | **HTML to PDF** | Convert HTML content to a PDF document |
 | **OCR PDF** | Make scanned PDFs searchable (image + hidden text layer) or extract text — 14 languages supported |
 | **CAD to PDF/Image** | Convert DXF drawings to PDF or PNG (DWG via optional ODA File Converter) |
+
+### Spreadsheet
+| Tool | Description |
+|------|-------------|
+| **Excel to CSV / JSON** | Export sheets from `.xlsx` / `.xls` to CSV or JSON (array-of-objects or array-of-arrays). Single sheet or all sheets as ZIP. |
+| **CSV / JSON to Excel** | Build an `.xlsx` workbook from one or more CSV or JSON files — one sheet per file, optional bold/shaded header row |
+| **Excel to PDF** | Convert a workbook to PDF with one section per sheet. Configurable page size, orientation, and font size. Basic table rendering, not pixel-perfect. |
+| **Merge Workbooks** | Combine multiple Excel files into a single workbook, optionally prefixing each sheet with its source filename |
+| **Split Sheets** | Export each sheet of a workbook as its own `.xlsx` (bundled as a ZIP if more than one) |
+| **Excel Info & Preview** | List sheet names, row/column counts, and preview the first N rows of every sheet |
 
 ### PDF Tools
 | Tool | Description |
@@ -147,7 +157,7 @@ The core app works out of the box with the main dependencies. Some features requ
 If you only need the core tools, install the minimal set:
 
 ```bash
-pip install Flask Pillow PyMuPDF "qrcode[pil]" markdown reportlab img2pdf python-docx
+pip install Flask Pillow PyMuPDF "qrcode[pil]" markdown reportlab img2pdf python-docx openpyxl xlrd
 ```
 
 ### Enabling DWG support (ODA File Converter)
@@ -199,7 +209,8 @@ your-everyday-tools/
 │   ├── text_tools.py               # Text & data tool page routes
 │   ├── calculator_tools.py         # Calculator page routes
 │   ├── qr_tools.py                 # QR code endpoints
-│   └── security_tools.py           # Security tool page routes
+│   ├── security_tools.py           # Security tool page routes
+│   └── spreadsheet_tools.py        # Excel / CSV / JSON workbook tools
 ├── templates/
 │   ├── base.html                   # Main layout (sidebar + content area)
 │   ├── index.html                  # Home page with tool cards
