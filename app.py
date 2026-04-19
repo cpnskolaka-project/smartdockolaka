@@ -36,6 +36,19 @@ TOOL_CATEGORIES = [
         ],
     },
     {
+        "id": "spreadsheet",
+        "name": "Spreadsheet",
+        "icon": "bi-file-earmark-spreadsheet-fill",
+        "tools": [
+            {"id": "excel-to-csv", "name": "Excel to CSV/JSON", "desc": "Export sheets as CSV or JSON", "icon": "bi-table"},
+            {"id": "csv-to-excel", "name": "CSV/JSON to Excel", "desc": "Build .xlsx from CSV or JSON files", "icon": "bi-file-earmark-spreadsheet"},
+            {"id": "excel-to-pdf", "name": "Excel to PDF", "desc": "Convert workbook to PDF (one section per sheet)", "icon": "bi-file-pdf"},
+            {"id": "merge", "name": "Merge Workbooks", "desc": "Combine multiple Excel files into one", "icon": "bi-union"},
+            {"id": "split", "name": "Split Sheets", "desc": "Export each sheet as its own .xlsx", "icon": "bi-scissors"},
+            {"id": "info", "name": "Excel Info & Preview", "desc": "List sheets, counts, and preview rows", "icon": "bi-info-circle-fill"},
+        ],
+    },
+    {
         "id": "image",
         "name": "Image Tools",
         "icon": "bi-image-fill",
@@ -136,6 +149,7 @@ from routes.text_tools import bp as text_bp
 from routes.calculator_tools import bp as calc_bp
 from routes.qr_tools import bp as qr_bp
 from routes.security_tools import bp as security_bp
+from routes.spreadsheet_tools import bp as spreadsheet_bp
 
 app.register_blueprint(convert_bp, url_prefix="/convert")
 app.register_blueprint(pdf_bp, url_prefix="/pdf")
@@ -144,6 +158,7 @@ app.register_blueprint(text_bp, url_prefix="/text")
 app.register_blueprint(calc_bp, url_prefix="/calc")
 app.register_blueprint(qr_bp, url_prefix="/qr")
 app.register_blueprint(security_bp, url_prefix="/security")
+app.register_blueprint(spreadsheet_bp, url_prefix="/spreadsheet")
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
