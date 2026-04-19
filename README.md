@@ -4,7 +4,6 @@ A lightweight, self-hosted web app that bundles 48 everyday utilities into a sin
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.x-green)
-![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ---
 
