@@ -1,17 +1,22 @@
 import os
-from flask import Flask, render_template
+from flask import Flask, render_template, request
+import logger
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100 MB max upload
+
+# Initialize DB
+logger.init_db()
 
 TOOL_CATEGORIES = [
     {
         "id": "convert",
         "name": "Document Conversion",
-        "icon": "bi-file-earmark-arrow-right-fill",
+        "icon": "bi-files",
         "tools": [
             {"id": "to-pdf", "name": "Files to PDF", "desc": "Convert images and text files to PDF", "icon": "bi-file-pdf-fill"},
             {"id": "pdf-to-word", "name": "PDF to Word", "desc": "Convert PDF to Word document", "icon": "bi-file-word-fill"},
+            {"id": "pdf-to-excel", "name": "PDF to Excel", "desc": "Extract PDF tabular data to Excel", "icon": "bi-file-earmark-spreadsheet-fill"},
             {"id": "pdf-to-images", "name": "PDF to Images", "desc": "Convert PDF pages to images", "icon": "bi-file-image-fill"},
             {"id": "pdf-to-text", "name": "PDF to Text", "desc": "Extract text content from PDF", "icon": "bi-file-text-fill"},
             {"id": "html-to-pdf", "name": "HTML to PDF", "desc": "Convert HTML content to PDF", "icon": "bi-filetype-html"},
@@ -26,11 +31,13 @@ TOOL_CATEGORIES = [
         "tools": [
             {"id": "merge", "name": "Merge PDFs", "desc": "Combine multiple PDFs into one", "icon": "bi-union"},
             {"id": "split", "name": "Split PDF", "desc": "Split PDF into individual pages", "icon": "bi-scissors"},
+            {"id": "delete", "name": "Delete Pages", "desc": "Remove specific pages from PDF", "icon": "bi-file-earmark-x"},
             {"id": "compress", "name": "Compress PDF", "desc": "Reduce PDF file size", "icon": "bi-file-zip-fill"},
             {"id": "rotate", "name": "Rotate PDF", "desc": "Rotate PDF pages", "icon": "bi-arrow-clockwise"},
             {"id": "resize", "name": "Resize PDF", "desc": "Change PDF page dimensions", "icon": "bi-aspect-ratio-fill"},
             {"id": "page-numbers", "name": "Page Numbers", "desc": "Add page numbers to PDF", "icon": "bi-123"},
             {"id": "extract-images", "name": "Extract Images", "desc": "Extract images from PDF", "icon": "bi-images"},
+            {"id": "watermark", "name": "PDF Watermark", "desc": "Add text watermark to PDF documents", "icon": "bi-water"},
             {"id": "protect", "name": "Protect PDF", "desc": "Add password protection to PDF", "icon": "bi-lock-fill"},
             {"id": "unlock", "name": "Unlock PDF", "desc": "Remove PDF password", "icon": "bi-unlock-fill"},
         ],
@@ -129,6 +136,29 @@ def inject_tools():
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route("/history")
+def history():
+    logs = logger.get_logs()
+    return render_template("history.html", logs=logs)
+
+@app.route("/clear_history", methods=["POST"])
+def clear_history():
+    logger.clear_logs()
+    from flask import redirect, url_for
+    return redirect(url_for("history"))
+
+@app.after_request
+def after_request_logger(response):
+    if request.method == "POST" and request.endpoint:
+        # Ignore endpoints that are not tools (e.g. static files)
+        if "." in request.endpoint:
+            logger.log_activity(
+                tool_endpoint=request.endpoint,
+                status_code=response.status_code,
+                user_agent=request.headers.get('User-Agent', '')
+            )
+    return response
 
 
 @app.errorhandler(413)
