@@ -1,24 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Your Everyday Tools{% endblock %}
+{% block title %}SmartDoc Kolaka{% endblock %}
 
 {% block content %}
 <div class="home-hero">
-    <h1>Your Everyday Tools</h1>
-    <p>All the utilities you need, in one place.</p>
+    <h1 data-i18n-text="home.title">SmartDoc Kolaka</h1>
+    <p class="hero-subtitle" data-i18n-text="home.subtitle">Sistem Utilitas Digital — KPP Pratama Kolaka</p>
 </div>
 
 {% for cat in tool_categories %}
 <div class="category-section">
     <div class="category-title">
-        <i class="bi {{ cat.icon }}"></i> {{ cat.name }}
+        <i class="bi {{ cat.icon }}"></i> <span data-i18n-text="cat.{{ cat.id }}">{{ cat.name }}</span>
     </div>
     <div class="tools-grid">
         {% for tool in cat.tools %}
         <a href="/{{ cat.id }}/{{ tool.id }}" class="tool-card">
             <div class="card-icon"><i class="bi {{ tool.icon }}"></i></div>
             <div class="card-body">
-                <h3>{{ tool.name }}</h3>
-                <p>{{ tool.desc }}</p>
+                <h3 data-i18n-text="tool.{{ cat.id }}.{{ tool.id }}">{{ tool.name }}</h3>
+                <p data-i18n-text="desc.{{ cat.id }}.{{ tool.id }}">{{ tool.desc }}</p>
             </div>
         </a>
         {% endfor %}

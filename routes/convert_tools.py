@@ -64,6 +64,17 @@ def pdf_to_word_page():
         options=[])
 
 
+@bp.route("/pdf-to-excel")
+def pdf_to_excel_page():
+    return render_template("upload_tool.html",
+        title="PDF to Excel",
+        description="Extract tabular data from PDF to an Excel file",
+        endpoint="/convert/pdf-to-excel",
+        accept=".pdf",
+        multiple=False,
+        options=[])
+
+
 @bp.route("/pdf-to-images")
 def pdf_to_images_page():
     return render_template("upload_tool.html",
@@ -388,6 +399,54 @@ def pdf_to_word():
                      as_attachment=True, download_name=name)
 
 
+@bp.route("/pdf-to-excel", methods=["POST"])
+def process_pdf_excel():
+    f = request.files.get("files")
+    if not f or not f.filename:
+        return jsonify(error="No file uploaded"), 400
+        
+    try:
+        import openpyxl
+        data = f.read()
+        doc = fitz.open(stream=data, filetype="pdf")
+        
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Empty"
+        
+        found_tables = False
+        
+        for page_num, page in enumerate(doc):
+            tabs = page.find_tables()
+            if tabs and hasattr(tabs, 'tables'):
+                for i, table in enumerate(tabs.tables):
+                    found_tables = True
+                    cells = table.extract()
+                    if not cells: continue
+                    
+                    new_ws = wb.create_sheet(title=f"Page {page_num+1} Tab {i+1}")
+                    for r_idx, row in enumerate(cells, start=1):
+                        for c_idx, val in enumerate(row, start=1):
+                            new_ws.cell(row=r_idx, column=c_idx, value=str(val) if val is not None else "")
+                            
+        doc.close()
+        
+        if not found_tables:
+            return jsonify(error="No tabular data recognized in this PDF. Or PyMuPDF version is too old to extract tables."), 400
+            
+        if "Empty" in wb.sheetnames and len(wb.sheetnames) > 1:
+            wb.remove(wb["Empty"])
+            
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        fname = f.filename.rsplit('.', 1)[0] + ".xlsx"
+        return send_file(output, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", as_attachment=True, download_name=fname)
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+
 @bp.route("/pdf-to-images", methods=["POST"])
 def pdf_to_images():
     files = request.files.getlist("files")
@@ -545,13 +604,15 @@ def cad_to_pdf():
     file_data = files[0].read()
 
     import tempfile, os, subprocess
-    with tempfile.TemporaryDirectory() as tmpdir:
+    tmp_dir = None
+    try:
+        tmp_dir = tempfile.mkdtemp()
         if ext == "dwg":
             if not ODA_CONVERTER:
                 return jsonify(error="DWG support requires ODA File Converter. Download it free from https://www.opendesign.com/guestfiles/oda_file_converter and ensure it is on your PATH. Or convert your DWG to DXF first."), 400
 
-            in_dir = os.path.join(tmpdir, "in")
-            out_dir = os.path.join(tmpdir, "out")
+            in_dir = os.path.join(tmp_dir, "in")
+            out_dir = os.path.join(tmp_dir, "out")
             os.makedirs(in_dir)
             os.makedirs(out_dir)
             dwg_path = os.path.join(in_dir, "input.dwg")
@@ -573,7 +634,7 @@ def cad_to_pdf():
                 return jsonify(error="DWG to DXF conversion produced no output."), 400
             doc = ezdxf.readfile(dxf_path)
         elif ext == "dxf":
-            dxf_path = os.path.join(tmpdir, "input.dxf")
+            dxf_path = os.path.join(tmp_dir, "input.dxf")
             with open(dxf_path, "wb") as f:
                 f.write(file_data)
             try:
@@ -611,3 +672,7 @@ def cad_to_pdf():
             buf.seek(0)
             return send_file(buf, mimetype="image/png",
                              as_attachment=True, download_name=base_name + ".png")
+    finally:
+        import shutil
+        if tmp_dir and os.path.exists(tmp_dir):
+            shutil.rmtree(tmp_dir)

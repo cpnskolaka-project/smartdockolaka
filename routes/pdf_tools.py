@@ -33,6 +33,21 @@ def split_page():
         ])
 
 
+@bp.route("/delete")
+def delete_pages():
+    return render_template(
+        "upload_tool.html",
+        title="Delete Pages",
+        description="Remove specific pages from PDF",
+        endpoint="/pdf/delete",
+        accept=".pdf",
+        multiple=False,
+        options=[
+            {"name": "pages", "label": "Pages to delete (e.g. 1, 3-5):", "type": "text", "placeholder": "1, 3-5", "required": True}
+        ],
+    )
+
+
 @bp.route("/compress")
 def compress_page():
     return render_template("upload_tool.html",
@@ -124,13 +139,33 @@ def page_numbers_page():
 
 @bp.route("/extract-images")
 def extract_images_page():
-    return render_template("upload_tool.html",
+    return render_template(
+        "upload_tool.html",
         title="Extract Images",
-        description="Extract all images embedded in a PDF file",
+        description="Extract all images embedded in PDF",
         endpoint="/pdf/extract-images",
         accept=".pdf",
         multiple=False,
-        options=[])
+        options=[]
+    )
+
+@bp.route("/watermark")
+def watermark():
+    return render_template(
+        "upload_tool.html",
+        title="PDF Watermark",
+        description="Add text watermark to PDF documents",
+        endpoint="/pdf/watermark",
+        accept=".pdf",
+        multiple=False,
+        options=[
+            {"name": "text", "label": "Watermark Text:", "type": "text", "required": True, "placeholder": "CONFIDENTIAL"},
+            {"name": "color", "label": "Text Color:", "type": "color", "value": "#ff0000"},
+            {"name": "opacity", "label": "Opacity (10%-100%):", "type": "range", "min": 10, "max": 100, "step": 5, "value": "30"},
+            {"name": "angle", "label": "Rotation Angle (°):", "type": "number", "value": "45"},
+            {"name": "size", "label": "Font Size:", "type": "number", "value": "72"}
+        ],
+    )
 
 
 @bp.route("/protect")
@@ -165,6 +200,11 @@ def unlock_page():
 
 # ── Processing Routes ────────────────────────────
 
+def hex_to_rgb(hex_color):
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16)/255 for i in (0, 2, 4))
+
+
 def parse_page_ranges(spec: str, total: int) -> list[int]:
     """Parse '1-3, 5, 7-10' into a list of 0-based page indices."""
     if not spec.strip():
@@ -183,6 +223,29 @@ def parse_page_ranges(spec: str, total: int) -> list[int]:
             if 0 <= p < total:
                 pages.add(p)
     return sorted(pages)
+
+
+def parse_page_groups(spec: str, total: int) -> list[tuple[str, int, int]]:
+    """Parse '1-3, 5, 7-10' into list of (name, start_idx, end_idx)"""
+    if not spec.strip():
+        return [(str(i + 1), i, i) for i in range(total)]
+
+    groups = []
+    for part in spec.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            start, end = part.split("-", 1)
+            s = max(1, int(start.strip()))
+            e = min(total, int(end.strip()))
+            if s <= e:
+                groups.append((f"{s}-{e}", s - 1, e - 1))
+        else:
+            p = int(part.strip()) - 1
+            if 0 <= p < total:
+                groups.append((str(p + 1), p, p))
+    return groups
 
 
 PAPER_SIZES = {
@@ -207,7 +270,7 @@ def merge():
             result.insert_pdf(doc)
             doc.close()
         except Exception as e:
-            return jsonify(error=f"Error reading {f.filename}: {str(e)}"), 400
+            return jsonify(error=str(e)), 500
 
     output = io.BytesIO()
     result.save(output)
@@ -227,32 +290,35 @@ def split():
     doc = fitz.open(stream=files[0].read(), filetype="pdf")
 
     try:
-        pages = parse_page_ranges(page_spec, len(doc))
+        groups = parse_page_groups(page_spec, len(doc))
     except ValueError:
         return jsonify(error="Invalid page range format."), 400
 
-    if not pages:
+    if not groups:
         return jsonify(error="No valid pages selected."), 400
 
-    if len(pages) == 1:
+    if len(groups) == 1:
+        name, start_idx, end_idx = groups[0]
         single = fitz.open()
-        single.insert_pdf(doc, from_page=pages[0], to_page=pages[0])
+        single.insert_pdf(doc, from_page=start_idx, to_page=end_idx)
         output = io.BytesIO()
         single.save(output)
         single.close()
         doc.close()
         output.seek(0)
+        prefix = "page_" if "-" not in name and name != "all" else "pages_"
         return send_file(output, mimetype="application/pdf",
-                         as_attachment=True, download_name=f"page_{pages[0]+1}.pdf")
+                         as_attachment=True, download_name=f"{prefix}{name}.pdf")
 
     parts = []
-    for p in pages:
+    for name, start_idx, end_idx in groups:
         part = fitz.open()
-        part.insert_pdf(doc, from_page=p, to_page=p)
+        part.insert_pdf(doc, from_page=start_idx, to_page=end_idx)
         buf = io.BytesIO()
         part.save(buf)
         part.close()
-        parts.append((f"page_{p + 1}.pdf", buf.getvalue()))
+        prefix = "page_" if "-" not in name else "pages_"
+        parts.append((f"{prefix}{name}.pdf", buf.getvalue()))
 
     doc.close()
     zip_buf = make_zip(parts)
@@ -268,26 +334,41 @@ def compress():
 
     quality = request.form.get("quality", "medium")
     image_quality = {"low": 40, "medium": 65, "high": 85}.get(quality, 65)
+    max_dim = {"low": 1000, "medium": 1600, "high": 2500}.get(quality, 1600)
 
     doc = fitz.open(stream=files[0].read(), filetype="pdf")
+    compressed_streams = {}
 
     for page in doc:
         images = page.get_images(full=True)
         for img_info in images:
             xref = img_info[0]
             try:
+                if xref in compressed_streams:
+                    page.replace_image(xref, stream=compressed_streams[xref])
+                    continue
+
                 base_image = doc.extract_image(xref)
                 if not base_image:
                     continue
+                
                 img_bytes = base_image["image"]
                 from PIL import Image
                 pil_img = Image.open(io.BytesIO(img_bytes))
                 if pil_img.mode in ("RGBA", "P"):
                     pil_img = pil_img.convert("RGB")
+                
+                w, h = pil_img.size
+                if w > max_dim or h > max_dim:
+                    ratio = min(max_dim / w, max_dim / h)
+                    new_w, new_h = int(w * ratio), int(h * ratio)
+                    pil_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
                 buf = io.BytesIO()
                 pil_img.save(buf, format="JPEG", quality=image_quality, optimize=True)
-                doc._deleteObject(xref)
-                page.insert_image(page.rect, stream=buf.getvalue())
+                
+                compressed_streams[xref] = buf.getvalue()
+                page.replace_image(xref, stream=compressed_streams[xref])
             except Exception:
                 continue
 
@@ -489,3 +570,73 @@ def unlock():
     name = files[0].filename.rsplit(".", 1)[0] + "_unlocked.pdf"
     return send_file(output, mimetype="application/pdf",
                      as_attachment=True, download_name=name)
+
+@bp.route("/delete", methods=["POST"])
+def process_delete():
+    f = request.files.get("files")
+    pages_str = request.form.get("pages", "").strip()
+    if not f or not f.filename or not pages_str:
+        return jsonify(error="PDF file and pages to delete are required"), 400
+    
+    try:
+        data = f.read()
+        doc = fitz.open(stream=data, filetype="pdf")
+        total = len(doc)
+        
+        groups = parse_page_groups(pages_str, total)
+        delete_list = set()
+        for g in groups:
+            for p in g:
+                delete_list.add(int(p))
+                
+        keep_list = [i for i in range(total) if i not in delete_list]
+        if not keep_list:
+            return jsonify(error="Cannot delete all pages uniformly, minimum 1 page must remain"), 400
+            
+        doc.select(keep_list)
+        
+        output = io.BytesIO()
+        doc.save(output)
+        doc.close()
+        output.seek(0)
+        
+        return send_file(output, mimetype="application/pdf", as_attachment=True, download_name=f"deleted_{f.filename}")
+    except Exception as e:
+        return jsonify(error=str(e)), 500
+
+@bp.route("/watermark", methods=["POST"])
+def process_watermark():
+    f = request.files.get("files")
+    text = request.form.get("text", "")
+    if not f or not f.filename or not text:
+        return jsonify(error="PDF file and watermark text are required"), 400
+    
+    try:
+        color = request.form.get("color", "#ff0000")
+        opacity_val = request.form.get("opacity", 30)
+        try:
+            opacity = float(opacity_val) / 100.0
+        except ValueError:
+            opacity = 0.3
+            
+        angle = float(request.form.get("angle", 45))
+        size = float(request.form.get("size", 72))
+        
+        rgb = hex_to_rgb(color)
+        
+        data = f.read()
+        doc = fitz.open(stream=data, filetype="pdf")
+        
+        for page in doc:
+            rect = page.rect
+            center = fitz.Point(rect.width / 2, rect.height / 2)
+            page.insert_text(center, text, fontsize=size, color=rgb, fill_opacity=opacity, rotate=angle, fontname="helv")
+            
+        output = io.BytesIO()
+        doc.save(output)
+        doc.close()
+        output.seek(0)
+        
+        return send_file(output, mimetype="application/pdf", as_attachment=True, download_name=f"watermarked_{f.filename}")
+    except Exception as e:
+        return jsonify(error=str(e)), 500

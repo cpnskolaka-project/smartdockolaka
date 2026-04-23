@@ -1,4 +1,4 @@
-# Your Everyday Tools
+# SmartDoc Kolaka
 
 A lightweight, self-hosted web app that bundles 57 everyday utilities into a single interface. Built with Python + Flask, zero JavaScript frameworks, and minimal CSS — no bloat, just tools.
 
@@ -119,9 +119,6 @@ A lightweight, self-hosted web app that bundles 57 everyday utilities into a sin
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/listyantidewi1/your-everyday-tools
-cd your-everyday-tools
 
 # Create a virtual environment (recommended)
 python -m venv venv

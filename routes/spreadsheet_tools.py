@@ -306,13 +306,21 @@ def _json_to_rows(parsed):
         if not parsed:
             return []
         if isinstance(parsed[0], dict):
-            headers = list({k: None for row in parsed for k in row.keys()}.keys())
+            headers = []
+            for row in parsed:
+                if isinstance(row, dict):
+                    for k in row.keys():
+                        if k not in headers:
+                            headers.append(k)
             rows = [headers]
             for obj in parsed:
-                rows.append([obj.get(h, "") for h in headers])
+                if isinstance(obj, dict):
+                    rows.append([obj.get(h, "") for h in headers])
+                else:
+                    rows.append([str(obj)] + [""] * (max(len(headers) - 1, 0)))
             return rows
         if isinstance(parsed[0], list):
-            return parsed
+            return [[str(x) if x is not None else "" for x in r] if isinstance(r, list) else [str(r)] for r in parsed]
     raise ValueError("JSON must be an array of objects or an array of arrays")
 
 

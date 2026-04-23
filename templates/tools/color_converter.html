@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Color Converter - EveryTools{% endblock %}
+{% block title %}Color Converter - SmartDoc Kolaka{% endblock %}
 {% block top_title %}Color Converter{% endblock %}
 
 {% block content %}
 <div class="client-tool">
     <div class="tool-header">
-        <h1>Color Converter</h1>
-        <p>Convert between HEX, RGB, and HSL color formats</p>
+        <h1 data-i18n-text="tool.calc.color-converter">Color Converter</h1>
+        <p data-i18n-text="desc.calc.color-converter">Convert between HEX, RGB, and HSL color formats</p>
     </div>
     <div class="color-preview" id="color-preview"></div>
     <div class="form-group" style="margin-bottom:1rem">
-        <label>Color Picker</label>
+        <label data-i18n-text="tool.color.picker">Color Picker</label>
         <input type="color" id="color-picker" value="#4361ee" onchange="fromPicker()" style="width:60px;height:36px;padding:2px;cursor:pointer">
     </div>
     <div class="color-inputs">
@@ -37,7 +37,7 @@
         <div class="form-group">
             <label>CSS</label>
             <input type="text" id="c-css" readonly>
-            <button class="btn btn-small" style="margin-top:.3rem" onclick="navigator.clipboard.writeText(document.getElementById('c-css').value)"><i class="bi bi-clipboard"></i> Copy</button>
+            <button class="btn btn-small" style="margin-top:.3rem" onclick="navigator.clipboard.writeText(document.getElementById('c-css').value)"><i class="bi bi-clipboard"></i> <span data-i18n-text="result.copy">Copy</span></button>
         </div>
     </div>
 </div>

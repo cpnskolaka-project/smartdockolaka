@@ -461,34 +461,60 @@ def watermark():
     overlay = Image.new("RGBA", img.size, (255, 255, 255, 0))
     draw = ImageDraw.Draw(overlay)
 
-    try:
-        font = ImageFont.truetype("arial.ttf", fontsize)
-    except OSError:
+    font_paths = [
+        "arial.ttf",
+        "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/Library/Fonts/Arial.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    ]
+    font = None
+    for fp in font_paths:
+        try:
+            font = ImageFont.truetype(fp, fontsize)
+            break
+        except OSError:
+            continue
+    if not font:
         font = ImageFont.load_default()
 
     alpha = int(255 * opacity / 100)
     fill = (255, 255, 255, alpha)
+    stroke_fill = (0, 0, 0, alpha)
+    stroke_width = max(1, fontsize // 15)
 
-    bbox = draw.textbbox((0, 0), text, font=font)
+    try:
+        bbox = draw.textbbox((0, 0), text, font=font, stroke_width=stroke_width)
+    except TypeError:
+        # Fallback for old Pillow without stroke_width support
+        bbox = draw.textbbox((0, 0), text, font=font)
+        stroke_width = 0
+
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
 
+    def draw_watermark(pos):
+        if stroke_width > 0:
+            draw.text(pos, text, fill=fill, font=font, stroke_width=stroke_width, stroke_fill=stroke_fill)
+        else:
+            draw.text(pos, text, fill=fill, font=font)
+
     if position == "tiled":
-        step_x = tw + 60
-        step_y = th + 60
+        step_x = tw + int(fontsize * 1.5) + 20
+        step_y = th + int(fontsize * 1.5) + 20
         for y in range(0, img.height + step_y, step_y):
             for x in range(0, img.width + step_x, step_x):
-                draw.text((x, y), text, fill=fill, font=font)
+                draw_watermark((x, y))
     else:
-        margin = 20
+        margin = int(fontsize * 0.5)
         positions = {
-            "center": ((img.width - tw) / 2, (img.height - th) / 2),
+            "center": ((img.width - tw) // 2, (img.height - th) // 2),
             "bottom-right": (img.width - tw - margin, img.height - th - margin),
             "bottom-left": (margin, img.height - th - margin),
             "top-right": (img.width - tw - margin, margin),
             "top-left": (margin, margin),
         }
         pos = positions.get(position, positions["center"])
-        draw.text(pos, text, fill=fill, font=font)
+        draw_watermark(pos)
 
     result = Image.alpha_composite(img, overlay).convert("RGB")
 

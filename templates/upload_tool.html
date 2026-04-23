@@ -1,12 +1,20 @@
 {% extends "base.html" %}
-{% block title %}{{ title }} - EveryTools{% endblock %}
+{% block title %}{{ title }} - SmartDoc Kolaka{% endblock %}
 {% block top_title %}{{ title }}{% endblock %}
 
 {% block content %}
 <div class="tool-page">
     <div class="tool-header">
-        <h1>{{ title }}</h1>
-        <p>{{ description }}</p>
+        {% set ep_parts = endpoint.strip('/').split('/') %}
+        {% if ep_parts|length >= 2 %}
+            {% set cat_id = ep_parts[0] %}
+            {% set tool_id = ep_parts[1] %}
+            <h1 data-i18n-text="tool.{{ cat_id }}.{{ tool_id }}">{{ title }}</h1>
+            <p data-i18n-text="desc.{{ cat_id }}.{{ tool_id }}">{{ description }}</p>
+        {% else %}
+            <h1>{{ title }}</h1>
+            <p>{{ description }}</p>
+        {% endif %}
     </div>
 
     {% if notes %}
@@ -28,8 +36,8 @@
                 accept="{{ accept }}" {{ 'multiple' if multiple }}>
             <div class="upload-prompt" id="upload-prompt">
                 <i class="bi bi-cloud-arrow-up"></i>
-                <p>Drag &amp; drop file{{ 's' if multiple }} here</p>
-                <span>or click to browse</span>
+                <p data-i18n-text="upload.drag">Drag &amp; drop file{{ 's' if multiple }} here</p>
+                <span data-i18n-text="upload.browse">or click to browse</span>
                 {% if accept %}<small>Accepted: {{ accept }}</small>{% endif %}
             </div>
             <div class="file-list" id="file-list"></div>
@@ -81,7 +89,7 @@
                         value="{{ opt.default|default(50) }}"
                         min="{{ opt.min|default(0) }}" max="{{ opt.max|default(100) }}"
                         step="{{ opt.step|default(1) }}"
-                        oninput="this.nextElementSibling.textContent=this.value+'{{ opt.suffix|default('') }}'">
+                        oninput="this.nextElementSibling.textContent=this.value+`{{ opt.suffix|default('') }}`">
                     <span class="range-value">{{ opt.default|default(50) }}{{ opt.suffix|default('') }}</span>
                 </div>
 
@@ -102,9 +110,9 @@
         {% endif %}
 
         <button type="submit" class="btn btn-primary" id="submit-btn">
-            <span class="btn-text">{{ button_text|default('Process') }}</span>
+            <span class="btn-text" data-i18n-text="upload.process">{{ button_text|default('Process') }}</span>
             <span class="btn-loading" style="display:none">
-                <i class="bi bi-arrow-repeat spin"></i> Processing...
+                <i class="bi bi-arrow-repeat spin"></i> <span data-i18n-text="upload.processing">Processing...</span>
             </span>
         </button>
     </form>
@@ -112,16 +120,16 @@
     <div id="result-area" class="result-area" style="display:none">
         <div id="result-success" class="result-success" style="display:none">
             <i class="bi bi-check-circle-fill"></i>
-            <span id="result-message">Done!</span>
+            <span id="result-message" data-i18n-text="result.done">Done!</span>
             <a id="download-btn" class="btn btn-success" download>
-                <i class="bi bi-download"></i> Download
+                <i class="bi bi-download"></i> <span data-i18n-text="result.download">Download</span>
             </a>
             <div id="result-preview" style="display:none"></div>
         </div>
         <div id="result-text" class="result-text-box" style="display:none">
             <div class="result-text-header">
-                <span>Result</span>
-                <button class="btn btn-small" onclick="copyResult()"><i class="bi bi-clipboard"></i> Copy</button>
+                <span data-i18n-text="result.result">Result</span>
+                <button class="btn btn-small" onclick="copyResult()"><i class="bi bi-clipboard"></i> <span data-i18n-text="result.copy">Copy</span></button>
             </div>
             <pre id="result-text-content"></pre>
         </div>

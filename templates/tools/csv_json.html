@@ -1,12 +1,12 @@
 {% extends "base.html" %}
-{% block title %}CSV / JSON Converter - EveryTools{% endblock %}
+{% block title %}CSV / JSON Converter - SmartDoc Kolaka{% endblock %}
 {% block top_title %}CSV / JSON{% endblock %}
 
 {% block content %}
 <div class="client-tool">
     <div class="tool-header">
-        <h1>CSV / JSON Converter</h1>
-        <p>Convert between CSV and JSON formats</p>
+        <h1 data-i18n-text="tool.text.csv-json">CSV / JSON Converter</h1>
+        <p data-i18n-text="desc.text.csv-json">Convert between CSV and JSON formats</p>
     </div>
     <div style="margin-bottom:1rem">
         <button class="btn btn-primary" id="btn-csv" onclick="setMode('csv')" style="opacity:1">CSV &rarr; JSON</button>

@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Case Converter - EveryTools{% endblock %}
+{% block title %}Case Converter - SmartDoc Kolaka{% endblock %}
 {% block top_title %}Case Converter{% endblock %}
 
 {% block content %}
 <div class="client-tool">
     <div class="tool-header">
-        <h1>Case Converter</h1>
-        <p>Convert text between different cases</p>
+        <h1 data-i18n-text="tool.text.case-converter">Case Converter</h1>
+        <p data-i18n-text="desc.text.case-converter">Convert text between different cases</p>
     </div>
     <div class="form-group">
-        <label>Input Text</label>
-        <textarea id="case-input" class="text-input" rows="4" placeholder="Type or paste your text here..." oninput="convertAll()"></textarea>
+        <label data-i18n-text="tool.case.input">Input Text</label>
+        <textarea id="case-input" class="text-input" rows="4" data-i18n-placeholder="tool.case.input_ph" placeholder="Type or paste your text here..." oninput="convertAll()"></textarea>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem">
         <div class="calc-section">

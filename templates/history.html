@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Activity History - SmartDoc Kolaka{% endblock %}
+{% block top_title %}Activity History{% endblock %}
+
+{% block content %}
+<div class="tool-header" style="display: flex; align-items: flex-start; justify-content: space-between;">
+    <div style="display: flex; gap: 1rem;">
+        <div class="tool-icon"><i class="bi bi-clock-history"></i></div>
+        <div class="tool-title">
+            <h1 data-i18n-text="history.title">Activity History</h1>
+            <p data-i18n-text="history.desc">Live audit log of processed tasks and system utility usage.</p>
+        </div>
+    </div>
+    <form action="{{ url_for('clear_history') }}" method="post" onsubmit="return confirm('Are you sure you want to clear all history? This cannot be undone.');">
+        <button type="submit" class="btn btn-primary" style="background: var(--danger); border-color: var(--danger);">
+            <i class="bi bi-trash"></i> <span data-i18n-text="history.clear">Clear All</span>
+        </button>
+    </form>
+</div>
+
+<div class="card" style="margin-top: 2rem;">
+    <div style="overflow-x: auto;">
+        <table class="history-table" style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border); background: var(--surface);">
+                    <th style="padding: 1rem;" data-i18n-text="history.col.id">ID</th>
+                    <th style="padding: 1rem;" data-i18n-text="history.col.time">Timestamp</th>
+                    <th style="padding: 1rem;" data-i18n-text="history.col.tool">Tool Endpoint</th>
+                    <th style="padding: 1rem;" data-i18n-text="history.col.status">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 1rem;">#{{ log.id }}</td>
+                    <td style="padding: 1rem;">{{ log.timestamp }}</td>
+                    <td style="padding: 1rem;"><code style="background: var(--bg); padding: .2rem .5rem; border-radius: 4px;">{{ log.tool_endpoint }}</code></td>
+                    <td style="padding: 1rem;">
+                        {% if log.status_code >= 200 and log.status_code < 300 %}
+                        <span style="background: rgba(34, 197, 94, 0.2); color: #16a34a; padding: .3rem .8rem; border-radius: 9999px; font-weight: 500; font-size: .875rem;">Success ({{ log.status_code }})</span>
+                        {% else %}
+                        <span style="background: rgba(239, 68, 68, 0.2); color: #dc2626; padding: .3rem .8rem; border-radius: 9999px; font-weight: 500; font-size: .875rem;">Failed ({{ log.status_code }})</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="padding: 2rem; text-align: center; color: var(--text-muted);" data-i18n-text="history.empty">
+                        No activity recorded yet. Process a PDF or Image to see logs here!
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
