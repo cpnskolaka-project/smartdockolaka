@@ -7,6 +7,16 @@
     <p class="hero-subtitle" data-i18n-text="home.subtitle">Sistem Utilitas Digital — KPP Pratama Kolaka</p>
 </div>
 
+<!-- Quick Access section (populated by JS if there are favorites/recents) -->
+<div id="quick-access-section" class="quick-access-section" style="display: none;">
+    <div class="category-title" style="margin-bottom: 1rem; color: var(--accent);">
+        <i class="bi bi-lightning-charge-fill"></i> <span data-i18n-text="nav.favorites">Akses Cepat</span>
+    </div>
+    <div id="quick-access-grid" class="quick-access-grid">
+        <!-- JS will populate QA cards here -->
+    </div>
+</div>
+
 {% for cat in tool_categories %}
 <div class="category-section">
     <div class="category-title">
@@ -15,6 +25,9 @@
     <div class="tools-grid">
         {% for tool in cat.tools %}
         <a href="/{{ cat.id }}/{{ tool.id }}" class="tool-card">
+            <button class="tool-card-favorite-btn" data-tool="{{ cat.id }}.{{ tool.id }}" aria-label="Toggle Favorite" onclick="toggleFavorite(this, '{{ cat.id }}.{{ tool.id }}')">
+                <i class="bi bi-star"></i>
+            </button>
             <div class="card-icon"><i class="bi {{ tool.icon }}"></i></div>
             <div class="card-body">
                 <h3 data-i18n-text="tool.{{ cat.id }}.{{ tool.id }}">{{ tool.name }}</h3>
@@ -25,4 +38,54 @@
     </div>
 </div>
 {% endfor %}
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // Generate mapping from categories to easy access format
+    const toolsMap = {};
+    {% for cat in tool_categories %}
+        {% for tool in cat.tools %}
+            toolsMap["{{ cat.id }}.{{ tool.id }}"] = {
+                id: "{{ tool.id }}",
+                catId: "{{ cat.id }}",
+                title: "{{ tool.name }}",
+                desc: "{{ tool.desc }}",
+                icon: "bi {{ tool.icon }}",
+                url: "/{{ cat.id }}/{{ tool.id }}"
+            };
+        {% endfor %}
+    {% endfor %}
+
+    function loadQuickAccess() {
+        const favs = getFavorites();
+        const recents = getRecentTools();
+        
+        // Combine, prioritize favorites, limit to 6
+        let quickTools = [...new Set([...favs, ...recents])].slice(0, 6);
+        
+        const section = document.getElementById("quick-access-section");
+        const grid = document.getElementById("quick-access-grid");
+        
+        if (quickTools.length > 0) {
+            let html = '';
+            quickTools.forEach(toolId => {
+                if (toolsMap[toolId]) {
+                    const t = toolsMap[toolId];
+                    html += `
+                        <a href="${t.url}" class="qa-card">
+                            <i class="${t.icon}"></i>
+                            <span data-i18n-text="tool.${t.catId}.${t.id}">${t.title}</span>
+                        </a>
+                    `;
+                }
+            });
+            grid.innerHTML = html;
+            section.style.display = "block";
+            applyLanguage();
+        }
+    }
+    
+    loadQuickAccess();
+});
+</script>
 {% endblock %}

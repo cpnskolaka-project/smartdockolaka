@@ -1,6 +1,7 @@
 const TRANSLATIONS = {
     en: {
         "nav.history": "Activity History",
+        "nav.favorites": "Favorites & Recent",
         "nav.toggle_theme": "Toggle Theme",
         "nav.switch_lang": "Indonesia",
         
@@ -12,6 +13,7 @@ const TRANSLATIONS = {
         "cat.calc": "Calculators",
         "cat.qr": "QR Code",
         "cat.security": "Security",
+        "cat.network": "Network Tools",
         
         "tool.convert.to-pdf": "Files to PDF",
         "tool.convert.pdf-to-word": "PDF to Word",
@@ -80,6 +82,9 @@ const TRANSLATIONS = {
         
         "tool.security.password-generator": "Password Generator",
         "tool.security.hash-generator": "Hash Generator",
+        "tool.security.system-check": "System Check",
+        
+        "tool.network.ping": "Ping Test",
         
         "desc.convert.to-pdf": "Convert images and text files to PDF",
         "desc.convert.pdf-to-word": "Convert PDF to Word document",
@@ -141,6 +146,8 @@ const TRANSLATIONS = {
         "desc.qr.read": "Decode QR codes from images",
         "desc.security.password-generator": "Generate strong random passwords",
         "desc.security.hash-generator": "Generate MD5, SHA hashes",
+        "desc.security.system-check": "Inspect local readiness, optional dependencies, and autostart status",
+        "desc.network.ping": "Check network connectivity and latency",
         
         "home.title": "SmartDoc Kolaka",
         "home.subtitle": "Digital Utility System — KPP Pratama Kolaka",
@@ -167,6 +174,13 @@ const TRANSLATIONS = {
         "history.col.tool": "Tool Endpoint",
         "history.col.status": "Status",
         
+        "fav.title": "My Favorites",
+        "fav.subtitle": "Quick access to your most frequently used utilities.",
+        "fav.empty": "You don't have any favorite tools yet.",
+        "fav.empty_hint": "Click the star icon (★) on any tool to add it here.",
+        "fav.recent_title": "Recently Used",
+        "fav.recent_empty": "No recent tool usage on this device yet.",
+        
         "error.no_file": "Please select a file first.",
         "error.no_text": "Please enter some text.",
         "error.processing_failed": "Processing failed.",
@@ -174,6 +188,7 @@ const TRANSLATIONS = {
     },
     id: {
         "nav.history": "Riwayat Log",
+        "nav.favorites": "Favorit & Recent",
         "nav.toggle_theme": "Ubah Tema",
         "nav.switch_lang": "English",
         
@@ -185,6 +200,7 @@ const TRANSLATIONS = {
         "cat.calc": "Kalkulator",
         "cat.qr": "Kode QR",
         "cat.security": "Keamanan",
+        "cat.network": "Alat Jaringan",
         
         "tool.convert.to-pdf": "File ke PDF",
         "tool.convert.pdf-to-word": "PDF ke Word",
@@ -253,6 +269,9 @@ const TRANSLATIONS = {
         
         "tool.security.password-generator": "Pembuat Kata Sandi",
         "tool.security.hash-generator": "Pembuat Hash",
+        "tool.security.system-check": "Pemeriksaan Sistem",
+        
+        "tool.network.ping": "Cek Ping",
         
         "desc.convert.to-pdf": "Konversi gambar dan teks ke PDF",
         "desc.convert.pdf-to-word": "Konversi PDF ke dokumen Word",
@@ -314,6 +333,8 @@ const TRANSLATIONS = {
         "desc.qr.read": "Pecahkan kode QR dari gambar",
         "desc.security.password-generator": "Buat kata sandi acak yang kuat",
         "desc.security.hash-generator": "Buat hash MD5, SHA",
+        "desc.security.system-check": "Periksa kesiapan lokal, dependency opsional, dan status autostart",
+        "desc.network.ping": "Periksa konektivitas dan latensi jaringan",
         
         "home.title": "SmartDoc Kolaka",
         "home.subtitle": "Sistem Utilitas Digital — KPP Pratama Kolaka",
@@ -339,6 +360,13 @@ const TRANSLATIONS = {
         "history.col.time": "Waktu",
         "history.col.tool": "Endpoint Alat",
         "history.col.status": "Status",
+        
+        "fav.title": "Favorit Saya",
+        "fav.subtitle": "Akses cepat ke utilitas yang paling sering Anda gunakan.",
+        "fav.empty": "Anda belum memiliki tool favorit.",
+        "fav.empty_hint": "Klik ikon bintang (★) pada tool mana saja untuk menambahkannya ke sini.",
+        "fav.recent_title": "Terakhir Digunakan",
+        "fav.recent_empty": "Belum ada riwayat penggunaan tool di perangkat ini.",
         
         "error.no_file": "Silakan pilih file terlebih dahulu.",
         "error.no_text": "Silakan masukkan teks.",

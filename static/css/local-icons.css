@@ -1,0 +1,96 @@
+.bi {
+    display: inline-block;
+    width: 1.25em;
+    text-align: center;
+    font-style: normal;
+    line-height: 1;
+}
+
+.bi::before {
+    display: inline-block;
+}
+
+.bi-123::before { content: "123"; font-size: 0.72em; font-weight: 700; }
+.bi-activity::before { content: "\223F"; }
+.bi-app-indicator::before { content: "\25A3"; }
+.bi-arrow-clockwise::before,
+.bi-arrow-repeat::before { content: "\21BB"; }
+.bi-arrow-counterclockwise::before { content: "\21BA"; }
+.bi-arrow-left-right::before { content: "\2194"; }
+.bi-arrows-angle-expand::before { content: "\2922"; }
+.bi-aspect-ratio-fill::before { content: "\25A4"; }
+.bi-backspace::before { content: "\232B"; }
+.bi-braces::before { content: "{}"; font-size: 0.9em; font-weight: 700; }
+.bi-calculator::before,
+.bi-calculator-fill::before { content: "\1F5A9"; }
+.bi-calendar-date-fill::before { content: "\1F4C5"; }
+.bi-card-text::before { content: "\1F5B9"; }
+.bi-check-circle::before,
+.bi-check-circle-fill::before { content: "\2714"; }
+.bi-check2::before { content: "\2713"; }
+.bi-chevron-down::before { content: "\25BE"; }
+.bi-clipboard::before { content: "\1F4CB"; }
+.bi-clipboard2-pulse::before { content: "\2699"; }
+.bi-clock-fill::before,
+.bi-clock-history::before { content: "\1F553"; }
+.bi-cloud-arrow-up::before { content: "\21E7"; }
+.bi-crop::before { content: "\229F"; }
+.bi-download::before { content: "\2B07"; }
+.bi-eraser-fill::before { content: "\232B"; }
+.bi-exclamation-circle-fill::before,
+.bi-exclamation-triangle-fill::before { content: "\26A0"; }
+.bi-file-diff-fill::before { content: "\2260"; }
+.bi-file-earmark::before { content: "\1F4C4"; }
+.bi-file-earmark-spreadsheet::before,
+.bi-file-earmark-spreadsheet-fill::before,
+.bi-table::before { content: "\2637"; }
+.bi-file-earmark-text-fill::before,
+.bi-file-text-fill::before,
+.bi-type::before,
+.bi-text-paragraph::before { content: "\2261"; }
+.bi-file-earmark-x::before,
+.bi-x-circle::before,
+.bi-x-circle-fill::before { content: "\2716"; }
+.bi-file-image-fill::before,
+.bi-image-fill::before,
+.bi-images::before { content: "\1F5BC"; }
+.bi-file-pdf::before,
+.bi-file-pdf-fill::before { content: "PDF"; font-size: 0.7em; font-weight: 700; }
+.bi-file-word-fill::before { content: "W"; font-size: 0.85em; font-weight: 700; }
+.bi-file-zip-fill::before { content: "\1F5DC"; }
+.bi-files::before { content: "\1F4D1"; }
+.bi-filetype-html::before { content: "<>"; font-size: 0.8em; font-weight: 700; }
+.bi-filetype-yml::before { content: "Y"; font-size: 0.85em; font-weight: 700; }
+.bi-film::before { content: "\1F39E"; }
+.bi-fingerprint::before { content: "\25CC"; }
+.bi-hash::before { content: "#"; font-weight: 700; }
+.bi-hdd-network-fill::before { content: "\2398"; }
+.bi-info-circle-fill::before { content: "\2139"; }
+.bi-key-fill::before { content: "\1F511"; }
+.bi-lightning-charge-fill::before { content: "\26A1"; }
+.bi-link::before,
+.bi-link-45deg::before { content: "\1F517"; }
+.bi-list::before { content: "\2630"; }
+.bi-lock-fill::before,
+.bi-shield-lock-fill::before { content: "\1F512"; }
+.bi-markdown-fill::before { content: "M"; font-size: 0.85em; font-weight: 700; }
+.bi-moon-fill::before { content: "\263E"; }
+.bi-palette-fill::before { content: "\1F3A8"; }
+.bi-pause-fill::before { content: "\23F8"; }
+.bi-percent::before { content: "%"; font-weight: 700; }
+.bi-play-fill::before { content: "\25B6"; }
+.bi-qr-code::before,
+.bi-qr-code-scan::before { content: "\25A3"; }
+.bi-rulers::before { content: "\1F4CF"; }
+.bi-scissors::before { content: "\2702"; }
+.bi-search::before { content: "\1F50D"; }
+.bi-stopwatch-fill::before { content: "\23F1"; }
+.bi-star::before { content: "\2606"; font-size: 1.1em; font-weight: bold; }
+.bi-star-fill::before { content: "\2605"; font-size: 1.1em; }
+.bi-sun-fill::before { content: "\2600"; }
+.bi-trash::before { content: "\1F5D1"; }
+.bi-translate::before { content: "\1F310"; }
+.bi-type-bold::before { content: "B"; font-weight: 700; }
+.bi-union::before { content: "\222A"; }
+.bi-unlock-fill::before { content: "\1F513"; }
+.bi-water::before { content: "\223C"; }

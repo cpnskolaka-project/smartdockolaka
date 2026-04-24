@@ -337,7 +337,72 @@ def compress():
     image_quality = {"low": 40, "medium": 65, "high": 85}.get(quality, 65)
     max_dim = {"low": 1000, "medium": 1600, "high": 2500}.get(quality, 1600)
 
-    doc = fitz.open(stream=files[0].read(), filetype="pdf")
+    pdf_data = files[0].read()
+    filename = files[0].filename
+    is_sse = request.headers.get("Accept") == "text/event-stream"
+
+    def generate():
+        import base64
+        import json
+        try:
+            doc = fitz.open(stream=pdf_data, filetype="pdf")
+            compressed_streams = {}
+            total = len(doc)
+
+            for i, page in enumerate(doc):
+                if is_sse:
+                    yield f"data: {json.dumps({'progress': True, 'page': i + 1, 'total': total})}\n\n"
+                    
+                images = page.get_images(full=True)
+                for img_info in images:
+                    xref = img_info[0]
+                    try:
+                        if xref in compressed_streams:
+                            page.replace_image(xref, stream=compressed_streams[xref])
+                            continue
+
+                        base_image = doc.extract_image(xref)
+                        if not base_image:
+                            continue
+                        
+                        img_bytes = base_image["image"]
+                        pil_img = Image.open(io.BytesIO(img_bytes))
+                        if pil_img.mode in ("RGBA", "P"):
+                            pil_img = pil_img.convert("RGB")
+                        
+                        w, h = pil_img.size
+                        if w > max_dim or h > max_dim:
+                            ratio = min(max_dim / w, max_dim / h)
+                            new_w, new_h = int(w * ratio), int(h * ratio)
+                            pil_img = pil_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+                        buf = io.BytesIO()
+                        pil_img.save(buf, format="JPEG", quality=image_quality, optimize=True)
+                        
+                        compressed_streams[xref] = buf.getvalue()
+                        page.replace_image(xref, stream=compressed_streams[xref])
+                    except Exception:
+                        continue
+
+            output = io.BytesIO()
+            doc.save(output, garbage=4, deflate=True, clean=True)
+            doc.close()
+            data = output.getvalue()
+            
+            dl_name = filename.rsplit(".", 1)[0] + "_compressed.pdf"
+            if is_sse:
+                b64 = base64.b64encode(data).decode('utf-8')
+                yield f"data: {json.dumps({'complete': True, 'filename': dl_name, 'data': b64, 'mime': 'application/pdf'})}\n\n"
+        except Exception as e:
+            if is_sse:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    if is_sse:
+        from flask import Response
+        return Response(generate(), mimetype="text/event-stream")
+
+    # Fallback normal processing
+    doc = fitz.open(stream=pdf_data, filetype="pdf")
     compressed_streams = {}
 
     for page in doc:
@@ -377,7 +442,7 @@ def compress():
     doc.close()
     output.seek(0)
 
-    name = files[0].filename.rsplit(".", 1)[0] + "_compressed.pdf"
+    name = filename.rsplit(".", 1)[0] + "_compressed.pdf"
     return send_file(output, mimetype="application/pdf",
                      as_attachment=True, download_name=name)
 

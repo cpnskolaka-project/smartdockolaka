@@ -1,9 +1,18 @@
 # SmartDoc Kolaka
 
-A lightweight, self-hosted web app that bundles 57 everyday utilities into a single interface. Built with Python + Flask, zero JavaScript frameworks, and minimal CSS — no bloat, just tools.
+A lightweight, self-hosted web app that bundles everyday utilities into a single local-first interface. Built with Python + Flask, zero JavaScript frameworks, and minimal CSS.
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue)
-![Flask](https://img.shields.io/badge/Flask-3.x-green)
+## Stage 1 Hardening
+
+The project now ships with several stage 1 hardening improvements for local office use:
+
+- Runs on `127.0.0.1` by default and no longer enables Flask debug mode unless explicitly requested.
+- Uses local UI assets only for the main app shell, so the browser does not need to reach public CDNs for fonts or icons.
+- Adds privacy-friendly activity logging, so uploaded filenames and raw text input are not stored by default.
+- Validates uploaded files by extension plus file signature where practical.
+- Enforces guardrails for upload count, PDF page count, OCR DPI, image pixel size, CAD file size, and subprocess timeouts.
+- Adds a local `System Check` page to inspect readiness, optional dependencies, binaries, and autostart status.
+- Upgrades the OS launcher scripts so a new PC can be prepared by running a single file per OS.
 
 ---
 
@@ -140,7 +149,31 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open **http://localhost:5000** in your browser.
+Open **http://127.0.0.1:5000** in your browser.
+
+### Recommended one-file launchers
+
+- **Windows**: run `run_windows.bat`
+- **macOS**: run `run_mac.command`
+
+These launchers will:
+
+- create the virtual environment automatically
+- install dependencies from the internet on first install or when reinstall/repair is requested
+- offer `install`, `reinstall`, and `repair` modes directly from the launcher
+- offer to configure autostart on first run
+- start the local app on `127.0.0.1:5000`
+
+## Install Once, Use Offline
+
+The intended deployment model is now:
+
+1. Connect the target PC to the internet for the first install.
+2. Run `run_windows.bat` or `run_mac.command`.
+3. Let the launcher create `venv` and install all Python dependencies.
+4. After the initial install completes, the app can be used offline for day-to-day local work.
+
+If `requirements.txt` changes, or if you choose `reinstall` or `repair`, internet is needed again to refresh dependencies.
 
 ---
 
@@ -151,10 +184,10 @@ The core app works out of the box with the main dependencies. Some features requ
 | Package | Feature | Notes |
 |---------|---------|-------|
 | `rembg` | Remove Background | Installs ONNX Runtime (~500 MB). The app works without it and shows a helpful message if missing. |
-| `pyzbar` | Read QR Code | Requires the [ZBar](https://github.com/NaturalHistoryMuseum/pyzbar#installation) shared library on your system. |
+| `pyzbar` | Read QR Code | Requires the ZBar shared library on your system. Use the internal installer package prepared for the deployment environment. |
 | `pdf2docx` | PDF to Word | Pure Python, but conversion quality depends on PDF complexity. |
-| `pytesseract` | Image to Text (OCR), OCR PDF | Requires the [Tesseract](https://github.com/tesseract-ocr/tesseract) binary installed on your system. For non-English OCR, download the matching `*.traineddata` language pack into your Tesseract `tessdata` folder. |
-| `ezdxf` + `matplotlib` | CAD to PDF/Image | Renders DXF drawings. For DWG support, also install the free [ODA File Converter](https://www.opendesign.com/guestfiles/oda_file_converter) and make sure it's on your `PATH`. |
+| `pytesseract` | Image to Text (OCR), OCR PDF | Requires the Tesseract binary installed on your system. For non-English OCR, add the matching `*.traineddata` language pack into the local `tessdata` folder. |
+| `ezdxf` + `matplotlib` | CAD to PDF/Image | Renders DXF drawings. For DWG support, also install ODA File Converter from the internal deployment package and make sure it's on your `PATH`. |
 
 If you only need the core tools, install the minimal set:
 
@@ -166,7 +199,7 @@ pip install Flask Pillow PyMuPDF "qrcode[pil]" markdown reportlab img2pdf python
 
 DXF files work out of the box once you install `ezdxf` and `matplotlib`. For **DWG** files, the app shells out to the free **ODA File Converter** (by Open Design Alliance) to convert DWG → DXF, then renders the DXF. There is no reliable pure-Python library that reads DWG, so this extra step is necessary.
 
-1. **Download** the installer for your OS from [opendesign.com](https://www.opendesign.com/guestfiles/oda_file_converter). It's a free guest download — no account required.
+1. **Use the installer package prepared for your OS** in the internal deployment bundle.
 2. **Run the installer.** Defaults are fine.
 3. **Add it to your PATH** so the Flask app can find it. The app looks for a binary named `ODAFileConverter` or `oda_file_converter` using `shutil.which()`.
 
@@ -192,7 +225,7 @@ DXF files work out of the box once you install `ezdxf` and `matplotlib`. For **D
 
 4. **Restart the Flask server.** PATH is read once at startup, so a running server won't see the new entry. After restart, the CAD tool page will show a green *"DWG support is enabled"* banner.
 
-**No ODA, no problem:** if you can't install it (e.g. on a restricted machine), open your DWG in free tools like [Autodesk Viewer](https://viewer.autodesk.com/), LibreCAD, or QCAD, export as DXF, then upload the DXF here.
+**No ODA, no problem:** if you cannot install it on a restricted machine, convert DWG to DXF using the CAD tool approved in your office, then upload the DXF here.
 
 ---
 
@@ -282,4 +315,3 @@ On Windows, use `waitress` instead:
 pip install waitress
 waitress-serve --port=8000 app:app
 ```
-

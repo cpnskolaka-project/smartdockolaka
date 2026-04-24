@@ -1,6 +1,6 @@
 import subprocess
 import platform
-from flask import Blueprint, render_template, request, jsonify
+from flask import Blueprint, current_app, render_template, request, jsonify
 
 bp = Blueprint("network", __name__)
 
@@ -35,10 +35,10 @@ def process_ping():
     try:
         # Run ping with 4 packets
         result = subprocess.run(
-            ["ping", param, "4", hostname],
+            ["ping", param, str(current_app.config["PING_COUNT"]), hostname],
             capture_output=True,
             text=True,
-            timeout=10  # 10 seconds timeout
+            timeout=current_app.config["NETWORK_TIMEOUT_SECONDS"],
         )
         
         # Combine stdout and stderr
@@ -51,6 +51,6 @@ def process_ping():
             
         return jsonify(text=output)
     except subprocess.TimeoutExpired:
-        return jsonify(error="Ping command timed out after 10 seconds."), 408
+        return jsonify(error=f"Ping melebihi batas waktu {current_app.config['NETWORK_TIMEOUT_SECONDS']} detik."), 408
     except Exception as e:
         return jsonify(error=f"Error executing ping: {str(e)}"), 500

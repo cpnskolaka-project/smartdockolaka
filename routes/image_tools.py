@@ -1,6 +1,6 @@
 import io
 import json
-from flask import Blueprint, render_template, request, send_file, jsonify
+from flask import Blueprint, current_app, render_template, request, send_file, jsonify
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ExifTags import TAGS
 
@@ -689,14 +689,19 @@ def animated():
 @bp.route("/ocr", methods=["POST"])
 def ocr():
     if not HAS_TESSERACT:
-        return jsonify(error="OCR requires 'pytesseract' package and Tesseract binary. Install with: pip install pytesseract, then install Tesseract from https://github.com/tesseract-ocr/tesseract"), 400
+        return jsonify(error="OCR memerlukan pytesseract dan binary Tesseract. Lengkapi dependency dari paket instalasi lokal."), 400
 
     files = request.files.getlist("files")
     if not files or not files[0].filename:
         return jsonify(error="No file uploaded."), 400
 
-    img = get_pil_image(files[0])
-    text = pytesseract.image_to_string(img)
+    try:
+        img = get_pil_image(files[0])
+        if img.width * img.height > current_app.config["MAX_IMAGE_PIXELS"]:
+            return jsonify(error="Ukuran gambar terlalu besar untuk diproses OCR."), 400
+        text = pytesseract.image_to_string(img)
+    except pytesseract.TesseractNotFoundError:
+        return jsonify(error="Binary Tesseract tidak ditemukan pada sistem lokal."), 400
 
     if not text.strip():
         return jsonify(text="(No text detected in image)")

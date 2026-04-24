@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Favorit & Recent - SmartDoc Kolaka{% endblock %}
+{% block top_title %}Favorit & Recent Tools{% endblock %}
+
+{% block content %}
+<div class="tool-header">
+    <h1><i class="bi bi-star-fill" style="color: var(--accent); margin-right: 0.5rem;"></i> <span data-i18n-text="fav.title">Favorit Saya</span></h1>
+    <p data-i18n-text="fav.subtitle">Akses cepat ke utilitas yang paling sering Anda gunakan.</p>
+</div>
+
+<div id="favorites-container" class="tools-grid" style="margin-bottom: 3rem;">
+    <!-- Favorites will be loaded here via JS -->
+</div>
+
+<div id="favorites-empty" class="card" style="padding: 3rem; text-align: center; color: var(--text-muted); display: none; margin-bottom: 3rem;">
+    <i class="bi bi-star" style="font-size: 3rem; color: var(--border); margin-bottom: 1rem; display: block;"></i>
+    <p data-i18n-text="fav.empty">Anda belum memiliki tool favorit.</p>
+    <p style="font-size: 0.9rem;" data-i18n-text="fav.empty_hint">Klik ikon bintang (★) pada tool mana saja untuk menambahkannya ke sini.</p>
+</div>
+
+<div class="tool-header">
+    <h2><i class="bi bi-clock-history" style="color: var(--primary); margin-right: 0.5rem;"></i> <span data-i18n-text="fav.recent_title">Terakhir Digunakan</span></h2>
+</div>
+
+<div id="recent-container" class="tools-grid">
+    <!-- Recent tools will be loaded here via JS -->
+</div>
+
+<div id="recent-empty" class="card" style="padding: 3rem; text-align: center; color: var(--text-muted); display: none;">
+    <i class="bi bi-clock-history" style="font-size: 3rem; color: var(--border); margin-bottom: 1rem; display: block;"></i>
+    <p data-i18n-text="fav.recent_empty">Belum ada riwayat penggunaan tool di perangkat ini.</p>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Build tool mapping from server-injected JSON (avoids Jinja for-loop issues in script blocks)
+    var rawCategories = {{ tool_categories | tojson }};
+    var toolsMap = {};
+    rawCategories.forEach(function(cat) {
+        cat.tools.forEach(function(tool) {
+            toolsMap[cat.id + "." + tool.id] = {
+                id: tool.id,
+                catId: cat.id,
+                title: tool.name,
+                desc: tool.desc,
+                icon: "bi " + tool.icon,
+                url: "/" + cat.id + "/" + tool.id
+            };
+        });
+    });
+
+    function renderToolCard(toolData, isFavoriteSection) {
+        var starBtn = '';
+        if (isFavoriteSection) {
+            starBtn = '<button class="tool-card-favorite-btn active" data-tool="' + toolData.catId + '.' + toolData.id + '" aria-label="Toggle Favorite" onclick="event.preventDefault(); event.stopPropagation(); toggleFavorite(this, \'' + toolData.catId + '.' + toolData.id + '\')">' +
+                '<i class="bi bi-star"></i></button>';
+        }
+        return '<a href="' + toolData.url + '" class="tool-card">' +
+            starBtn +
+            '<div class="card-icon"><i class="' + toolData.icon + '"></i></div>' +
+            '<div class="card-body">' +
+                '<h3 data-i18n-text="tool.' + toolData.catId + '.' + toolData.id + '">' + toolData.title + '</h3>' +
+                '<p data-i18n-text="desc.' + toolData.catId + '.' + toolData.id + '">' + toolData.desc + '</p>' +
+            '</div>' +
+        '</a>';
+    }
+
+    function loadFavoritesAndRecent() {
+        var favs = getFavorites();
+        var favContainer = document.getElementById("favorites-container");
+        var favEmpty = document.getElementById("favorites-empty");
+
+        var validFavHtml = '';
+        favs.forEach(function(toolId) {
+            if (toolsMap[toolId]) {
+                validFavHtml += renderToolCard(toolsMap[toolId], true);
+            }
+        });
+
+        if (validFavHtml) {
+            favContainer.innerHTML = validFavHtml;
+            favContainer.style.display = "grid";
+            favEmpty.style.display = "none";
+        } else {
+            favContainer.style.display = "none";
+            favEmpty.style.display = "block";
+        }
+
+        var recents = getRecentTools();
+        var recContainer = document.getElementById("recent-container");
+        var recEmpty = document.getElementById("recent-empty");
+
+        var validRecHtml = '';
+        recents.forEach(function(toolId) {
+            if (toolsMap[toolId]) {
+                validRecHtml += renderToolCard(toolsMap[toolId], false);
+            }
+        });
+
+        if (validRecHtml) {
+            recContainer.innerHTML = validRecHtml;
+            recContainer.style.display = "grid";
+            recEmpty.style.display = "none";
+        } else {
+            recContainer.style.display = "none";
+            recEmpty.style.display = "block";
+        }
+
+        if (typeof applyLanguage === 'function') applyLanguage();
+    }
+
+    loadFavoritesAndRecent();
+});
+</script>
+{% endblock %}

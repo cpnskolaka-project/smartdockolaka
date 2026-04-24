@@ -3,6 +3,12 @@
 
 Dokumen ini berisi panduan lengkap langkah demi langkah untuk menginstal dan menjalankan aplikasi **SmartDoc Kolaka** di komputer operasional KPP Pratama Kolaka secara lokal tanpa memerlukan akses internet (*Offline*).
 
+Catatan tahap 1:
+- Aplikasi berjalan lokal pada `127.0.0.1` dan tidak membuka akses keluar secara default untuk aset antarmuka utama.
+- Riwayat aktivitas disimpan dalam mode privasi, sehingga nama file dan isi teks mentah tidak dicatat secara default.
+- Beberapa tool memiliki batas ukuran file, jumlah halaman PDF, DPI OCR, dan ukuran gambar agar aplikasi tetap stabil di komputer operasional.
+- Instalasi pertama membutuhkan koneksi internet untuk memasang dependency Python. Setelah selesai, aplikasi dapat digunakan secara offline.
+
 ---
 
 ## TAHAP 1: Instalasi Mesin Python (Wajib)
@@ -30,24 +36,38 @@ Setelah proses instalasi senyap selesai (biasanya tidak ada notifikasi, hanya di
 Kini mesin telah siap, saatnya membangkitkan aplikasi utama!
 
 1. Cari berkas pemicu berlogo gir gigi roda bernama **`run_windows.bat`** *(atau bernama "run_windows" jenis Windows Batch File)* yang terdapat di dalam tumpukan berkas sumber ini.
-2. Klik Ganda *(Double Click)* pada berkas tersebut.
-3. Kumpulan tulisan skrip otomatis akan berlarian menata perpustakaan berkas dan memasang jubah AI tambahan yang dibutuhkan *(Hanya memakan waktu pada pertama kali dibuka)*.
-4. Jangan pernah menekan tanda silang merah `[X]` pada terminal ini! Jika ditutup, maka *Web Server* akan mati seketika. Biarkan terminal terminimize ke *Taskbar* bawah.
+2. Klik Ganda *(Double Click)* pada berkas tersebut. Untuk instalasi PC baru, **cukup jalankan file ini saja**.
+3. Skrip akan otomatis:
+   - membuat lingkungan virtual Python jika belum ada
+   - memasang seluruh dependency Python dari internet pada instalasi pertama
+   - menawarkan pemasangan autostart Windows pada pemakaian pertama
+   - membuka aplikasi lokal di browser
+4. Jangan menekan tanda silang merah `[X]` pada terminal ini saat aplikasi sedang dipakai. Jika ditutup, maka *Web Server* akan berhenti.
 5. Anda bisa langsung menikmati aplikasi di peramban internet (*Browser* Chrome/Edge) melalui alamat: **`http://127.0.0.1:5000`**
+
+### Mode Perbaikan Cepat dari Launcher
+
+Saat menjalankan **`run_windows.bat`**, Anda akan melihat menu singkat:
+
+1. **Jalankan aplikasi**  
+   Digunakan untuk pemakaian harian biasa.
+2. **Install dependency sekarang**  
+   Memaksa pengecekan dan pemasangan paket. Gunakan saat komputer terhubung internet.
+3. **Reinstall dependency**  
+   Memasang ulang seluruh dependency tanpa menghapus `venv`. Membutuhkan internet.
+4. **Repair instalasi**  
+   Menghapus `venv`, membuat ulang lingkungan virtual, lalu memasang ulang paket dari internet.
+5. **Atur ulang autostart**  
+   Menampilkan ulang pertanyaan aktivasi autostart.
+
+Gunakan **Repair instalasi** jika aplikasi gagal berjalan di PC tertentu tetapi berkas project masih lengkap.
 
 ## TAHAP 4: Menata Menjadi Autostart (Berjalan Otomatis Saat PC Dinyalakan)
 Jika Anda menggunakan PC stasioner / pelayanan terpadu yang sering dimatikan *(Shutdown)* pada jam pulang, lebih baik aplikasi ini menyala sendiri secara otomatis ketika satpam atau pegawai menyalakan PC keesokan paginya.
 
-1. Beralih ke folder aplikasi dan temukan berkas **`run_windows.bat`** tadi.
-2. Klik Kanan berkas tersebut -> Klik **`Create shortcut`** (atau ketuk tombol Alt/Option sembari menarik file). Berkas salinan bernama *run_windows.bat - Shortcut* akan terbentuk.
-3. Sekarang, tekan tahan bendera sakti **`Tombol Windows` + `[R]`** di _Keyboard_ Anda secara bersamaan. Jendela kecil *Run* akan meloncat keluar.
-4. Ketik teks sandi berikut ini dan tekan Enter:
-   ```text
-   shell:startup
-   ```
-5. Jendela folder kosong bernama _Startup_ akan terbuka. 
-6. Pindahkan *(Cut)* atau seret berkas **Shortcut** yang Anda buat pada langkah ke-2 tadi ke dalam folder _Startup_ ini.
-7. Selesai! Harta karun telah tersimpan rapi. Kini setiap kali PC di-*Restart* maupun baru pertama kali dihidupkan, ia akan otomatis menjalankan tugas tanpa Anda perintah!
+1. Saat pertama kali menjalankan **`run_windows.bat`**, jawab `Y` jika ingin autostart aktif.
+2. Skrip akan otomatis membuat shortcut pada folder `Startup` Windows untuk user yang sedang login.
+3. Jika sebelumnya menjawab `N`, autostart masih bisa diaktifkan ulang dengan menghapus berkas `.autostart_windows` lalu menjalankan **`run_windows.bat`** lagi.
 
 ---
 *Dibuat khusus untuk optimalisasi alat tempur di Lingkungan Direktorat Jenderal Pajak RI.*
