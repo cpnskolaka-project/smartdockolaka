@@ -1,13 +1,22 @@
 import io
+import json
 from flask import Blueprint, render_template, request, send_file, jsonify
 from PIL import Image, ImageDraw, ImageFont
 from PIL.ExifTags import TAGS
 
-try:
-    from rembg import remove as rembg_remove
-    HAS_REMBG = True
-except ImportError:
-    HAS_REMBG = False
+# Lazy-loaded: rembg is ~300MB in RAM, only load when actually needed
+_rembg_remove = None
+
+def _get_rembg():
+    """Lazy-load rembg to avoid ~300MB RAM usage at startup."""
+    global _rembg_remove
+    if _rembg_remove is None:
+        try:
+            from rembg import remove
+            _rembg_remove = remove
+        except ImportError:
+            return None
+    return _rembg_remove
 
 try:
     import pytesseract
@@ -360,7 +369,8 @@ def convert():
 
 @bp.route("/remove-bg", methods=["POST"])
 def remove_bg():
-    if not HAS_REMBG:
+    rembg_fn = _get_rembg()
+    if rembg_fn is None:
         return jsonify(error="Background removal requires the 'rembg' package. Install with: pip install rembg"), 400
 
     files = request.files.getlist("files")
@@ -368,7 +378,7 @@ def remove_bg():
         return jsonify(error="No file uploaded."), 400
 
     input_data = files[0].read()
-    output_data = rembg_remove(input_data)
+    output_data = rembg_fn(input_data)
 
     name = files[0].filename.rsplit(".", 1)[0] + "_nobg.png"
     return send_file(io.BytesIO(output_data), mimetype="image/png",
@@ -537,7 +547,11 @@ def exif():
 
     if action == "view":
         exif_data = {}
-        raw_exif = img._getexif()
+        try:
+            raw_exif = img.getexif() if hasattr(img, "getexif") else getattr(img, "_getexif", lambda: None)()
+        except Exception:
+            raw_exif = None
+            
         if raw_exif:
             for tag_id, value in raw_exif.items():
                 tag_name = TAGS.get(tag_id, tag_id)
@@ -552,7 +566,6 @@ def exif():
                 exif_data[str(tag_name)] = value
         if not exif_data:
             return jsonify(text="No EXIF data found in this image.")
-        import json
         return jsonify(text=json.dumps(exif_data, indent=2, ensure_ascii=False))
     else:
         # Strip EXIF by re-saving without exif

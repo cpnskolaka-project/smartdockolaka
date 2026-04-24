@@ -13,9 +13,9 @@
         <h3>What is X% of Y?</h3>
         <div class="inline-form">
             <span>What is</span>
-            <input type="number" id="p1-pct" style="width:80px" oninput="calc1()">
+            <input type="text" inputmode="decimal" id="p1-pct" style="width:80px" oninput="formatInputField(this); calc1()">
             <span>% of</span>
-            <input type="number" id="p1-val" style="width:100px" oninput="calc1()">
+            <input type="text" inputmode="decimal" id="p1-val" style="width:120px" oninput="formatInputField(this); calc1()">
             <span>?</span>
         </div>
         <div class="calc-result-inline" id="p1-result">&mdash;</div>
@@ -24,9 +24,9 @@
     <div class="calc-section">
         <h3>X is what % of Y?</h3>
         <div class="inline-form">
-            <input type="number" id="p2-x" style="width:100px" oninput="calc2()">
+            <input type="text" inputmode="decimal" id="p2-x" style="width:120px" oninput="formatInputField(this); calc2()">
             <span>is what % of</span>
-            <input type="number" id="p2-y" style="width:100px" oninput="calc2()">
+            <input type="text" inputmode="decimal" id="p2-y" style="width:120px" oninput="formatInputField(this); calc2()">
             <span>?</span>
         </div>
         <div class="calc-result-inline" id="p2-result">&mdash;</div>
@@ -36,9 +36,9 @@
         <h3>Percentage change from X to Y</h3>
         <div class="inline-form">
             <span>From</span>
-            <input type="number" id="p3-from" style="width:100px" oninput="calc3()">
+            <input type="text" inputmode="decimal" id="p3-from" style="width:120px" oninput="formatInputField(this); calc3()">
             <span>to</span>
-            <input type="number" id="p3-to" style="width:100px" oninput="calc3()">
+            <input type="text" inputmode="decimal" id="p3-to" style="width:120px" oninput="formatInputField(this); calc3()">
         </div>
         <div class="calc-result-inline" id="p3-result">&mdash;</div>
     </div>
@@ -46,12 +46,12 @@
     <div class="calc-section">
         <h3>Increase / Decrease by percentage</h3>
         <div class="inline-form">
-            <input type="number" id="p4-val" style="width:100px" oninput="calc4()">
+            <input type="text" inputmode="decimal" id="p4-val" style="width:120px" oninput="formatInputField(this); calc4()">
             <select id="p4-dir" onchange="calc4()" style="width:auto">
                 <option value="increase">+ increase by</option>
                 <option value="decrease">− decrease by</option>
             </select>
-            <input type="number" id="p4-pct" style="width:80px" oninput="calc4()">
+            <input type="text" inputmode="decimal" id="p4-pct" style="width:80px" oninput="formatInputField(this); calc4()">
             <span>%</span>
         </div>
         <div class="calc-result-inline" id="p4-result">&mdash;</div>
@@ -61,36 +61,74 @@
 
 {% block scripts %}
 <script>
+function formatNumber(num) {
+    return new Intl.NumberFormat('id-ID', { maximumFractionDigits: 10 }).format(parseFloat(num.toPrecision(10)));
+}
+
+function formatInputField(inputElem) {
+    let cursor = inputElem.selectionStart;
+    let val = inputElem.value;
+    let cleaned = val.replace(/[^0-9,\-]/g, '');
+    let isNegative = cleaned.startsWith('-');
+    if (isNegative) cleaned = '-' + cleaned.substring(1).replace(/\-/g, '');
+    else cleaned = cleaned.replace(/\-/g, '');
+    
+    let parts = cleaned.split(',');
+    if (parts.length > 2) parts = [parts[0], parts.slice(1).join('')];
+    
+    if (parts[0] && parts[0] !== '-' && parts[0] !== '') {
+        let numStr = parts[0].replace('-', '');
+        let num = parseInt(numStr, 10);
+        if (!isNaN(num)) {
+            parts[0] = (isNegative ? '-' : '') + new Intl.NumberFormat('id-ID').format(num);
+        }
+    }
+    
+    let newVal = parts.join(',');
+    if (val !== newVal) {
+        let diff = newVal.length - val.length;
+        inputElem.value = newVal;
+        let newCursor = Math.max(0, cursor + diff);
+        inputElem.setSelectionRange(newCursor, newCursor);
+    }
+}
+
+function parseIndonesianNumber(str) {
+    if (!str) return NaN;
+    let cleanStr = str.replace(/\./g, '').replace(/,/g, '.');
+    return parseFloat(cleanStr);
+}
+
 function calc1() {
-    const pct = parseFloat(document.getElementById("p1-pct").value);
-    const val = parseFloat(document.getElementById("p1-val").value);
-    if (isNaN(pct) || isNaN(val)) return;
-    document.getElementById("p1-result").textContent = parseFloat((pct / 100 * val).toPrecision(10));
+    const pct = parseIndonesianNumber(document.getElementById("p1-pct").value);
+    const val = parseIndonesianNumber(document.getElementById("p1-val").value);
+    if (isNaN(pct) || isNaN(val)) { document.getElementById("p1-result").innerHTML = "&mdash;"; return; }
+    document.getElementById("p1-result").textContent = formatNumber(pct / 100 * val);
 }
 
 function calc2() {
-    const x = parseFloat(document.getElementById("p2-x").value);
-    const y = parseFloat(document.getElementById("p2-y").value);
-    if (isNaN(x) || isNaN(y) || y === 0) return;
-    document.getElementById("p2-result").textContent = parseFloat((x / y * 100).toPrecision(10)) + "%";
+    const x = parseIndonesianNumber(document.getElementById("p2-x").value);
+    const y = parseIndonesianNumber(document.getElementById("p2-y").value);
+    if (isNaN(x) || isNaN(y) || y === 0) { document.getElementById("p2-result").innerHTML = "&mdash;"; return; }
+    document.getElementById("p2-result").textContent = formatNumber(x / y * 100) + "%";
 }
 
 function calc3() {
-    const from = parseFloat(document.getElementById("p3-from").value);
-    const to = parseFloat(document.getElementById("p3-to").value);
-    if (isNaN(from) || isNaN(to) || from === 0) return;
+    const from = parseIndonesianNumber(document.getElementById("p3-from").value);
+    const to = parseIndonesianNumber(document.getElementById("p3-to").value);
+    if (isNaN(from) || isNaN(to) || from === 0) { document.getElementById("p3-result").innerHTML = "&mdash;"; return; }
     const change = ((to - from) / Math.abs(from)) * 100;
     const sign = change >= 0 ? "+" : "";
-    document.getElementById("p3-result").textContent = sign + parseFloat(change.toPrecision(10)) + "%";
+    document.getElementById("p3-result").textContent = sign + formatNumber(change) + "%";
 }
 
 function calc4() {
-    const val = parseFloat(document.getElementById("p4-val").value);
-    const pct = parseFloat(document.getElementById("p4-pct").value);
+    const val = parseIndonesianNumber(document.getElementById("p4-val").value);
+    const pct = parseIndonesianNumber(document.getElementById("p4-pct").value);
     const dir = document.getElementById("p4-dir").value;
-    if (isNaN(val) || isNaN(pct)) return;
+    if (isNaN(val) || isNaN(pct)) { document.getElementById("p4-result").innerHTML = "&mdash;"; return; }
     const factor = dir === "increase" ? 1 + pct / 100 : 1 - pct / 100;
-    document.getElementById("p4-result").textContent = parseFloat((val * factor).toPrecision(10));
+    document.getElementById("p4-result").textContent = formatNumber(val * factor);
 }
 </script>
 {% endblock %}

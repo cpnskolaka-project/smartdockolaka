@@ -1,4 +1,8 @@
 import io
+import os
+import tempfile
+import subprocess
+import shutil
 import fitz  # PyMuPDF
 from flask import Blueprint, render_template, request, send_file, jsonify
 from PIL import Image
@@ -10,6 +14,7 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+from utils.file_utils import make_zip
 
 try:
     from pdf2docx import Converter as Pdf2DocxConverter
@@ -34,7 +39,6 @@ try:
 except ImportError:
     HAS_EZDXF = False
 
-import shutil
 ODA_CONVERTER = shutil.which("ODAFileConverter") or shutil.which("oda_file_converter")
 
 bp = Blueprint("convert", __name__)
@@ -373,7 +377,7 @@ def pdf_to_word():
     if not files or not files[0].filename:
         return jsonify(error="No file uploaded."), 400
 
-    import tempfile, os
+
     pdf_data = files[0].read()
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -459,7 +463,7 @@ def pdf_to_images():
     pdf_data = files[0].read()
     doc = fitz.open(stream=pdf_data, filetype="pdf")
 
-    from utils.file_utils import make_zip
+
     images = []
     mat = fitz.Matrix(dpi / 72, dpi / 72)
 
@@ -603,7 +607,7 @@ def cad_to_pdf():
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     file_data = files[0].read()
 
-    import tempfile, os, subprocess
+
     tmp_dir = None
     try:
         tmp_dir = tempfile.mkdtemp()
@@ -673,6 +677,6 @@ def cad_to_pdf():
             return send_file(buf, mimetype="image/png",
                              as_attachment=True, download_name=base_name + ".png")
     finally:
-        import shutil
+
         if tmp_dir and os.path.exists(tmp_dir):
             shutil.rmtree(tmp_dir)

@@ -1,6 +1,7 @@
 import io
 import fitz  # PyMuPDF
 from flask import Blueprint, render_template, request, send_file, jsonify
+from PIL import Image
 from utils.file_utils import make_zip
 
 bp = Blueprint("pdf", __name__)
@@ -353,7 +354,6 @@ def compress():
                     continue
                 
                 img_bytes = base_image["image"]
-                from PIL import Image
                 pil_img = Image.open(io.BytesIO(img_bytes))
                 if pil_img.mode in ("RGBA", "P"):
                     pil_img = pil_img.convert("RGB")
@@ -583,15 +583,14 @@ def process_delete():
         doc = fitz.open(stream=data, filetype="pdf")
         total = len(doc)
         
-        groups = parse_page_groups(pages_str, total)
-        delete_list = set()
-        for g in groups:
-            for p in g:
-                delete_list.add(int(p))
+        # parse_page_ranges returns flat list of 0-based page indices
+        delete_indices = set(parse_page_ranges(pages_str, total))
+        if not delete_indices:
+            return jsonify(error="No valid pages specified to delete."), 400
                 
-        keep_list = [i for i in range(total) if i not in delete_list]
+        keep_list = [i for i in range(total) if i not in delete_indices]
         if not keep_list:
-            return jsonify(error="Cannot delete all pages uniformly, minimum 1 page must remain"), 400
+            return jsonify(error="Cannot delete all pages — at least 1 page must remain."), 400
             
         doc.select(keep_list)
         
@@ -600,9 +599,13 @@ def process_delete():
         doc.close()
         output.seek(0)
         
-        return send_file(output, mimetype="application/pdf", as_attachment=True, download_name=f"deleted_{f.filename}")
+        deleted_count = len(delete_indices)
+        return send_file(output, mimetype="application/pdf", as_attachment=True,
+                         download_name=f"deleted_{deleted_count}p_{f.filename}")
+    except ValueError:
+        return jsonify(error="Invalid page range format. Use e.g. '1, 3-5'."), 400
     except Exception as e:
-        return jsonify(error=str(e)), 500
+        return jsonify(error=f"Failed to delete pages: {str(e)}"), 500
 
 @bp.route("/watermark", methods=["POST"])
 def process_watermark():

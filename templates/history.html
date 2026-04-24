@@ -4,7 +4,7 @@
 {% block top_title %}Activity History{% endblock %}
 
 {% block content %}
-<div class="tool-header" style="display: flex; align-items: flex-start; justify-content: space-between;">
+<div class="tool-header" style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
     <div style="display: flex; gap: 1rem;">
         <div class="tool-icon"><i class="bi bi-clock-history"></i></div>
         <div class="tool-title">
@@ -12,42 +12,112 @@
             <p data-i18n-text="history.desc">Live audit log of processed tasks and system utility usage.</p>
         </div>
     </div>
-    <form action="{{ url_for('clear_history') }}" method="post" onsubmit="return confirm('Are you sure you want to clear all history? This cannot be undone.');">
+    <form action="{{ url_for('clear_history') }}" method="post" onsubmit="return confirm('Apakah Anda yakin ingin menghapus semua riwayat? Ini tidak dapat dibatalkan.');">
         <button type="submit" class="btn btn-primary" style="background: var(--danger); border-color: var(--danger);">
             <i class="bi bi-trash"></i> <span data-i18n-text="history.clear">Clear All</span>
         </button>
     </form>
 </div>
 
-<div class="card" style="margin-top: 2rem;">
+<!-- Stats Cards -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+    <div class="card" style="padding: 1.2rem; text-align: center;">
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent);">{{ stats.total }}</div>
+        <div style="font-size: .85rem; color: var(--text-muted); margin-top: .2rem;">Total Proses</div>
+    </div>
+    <div class="card" style="padding: 1.2rem; text-align: center;">
+        <div style="font-size: 2rem; font-weight: 700; color: #16a34a;">{{ stats.success }}</div>
+        <div style="font-size: .85rem; color: var(--text-muted); margin-top: .2rem;">Berhasil</div>
+    </div>
+    <div class="card" style="padding: 1.2rem; text-align: center;">
+        <div style="font-size: 2rem; font-weight: 700; color: #dc2626;">{{ stats.failed }}</div>
+        <div style="font-size: .85rem; color: var(--text-muted); margin-top: .2rem;">Gagal</div>
+    </div>
+    <div class="card" style="padding: 1.2rem; text-align: center;">
+        <div style="font-size: 2rem; font-weight: 700; color: var(--accent-gold, #d4a843);">{{ stats.today }}</div>
+        <div style="font-size: .85rem; color: var(--text-muted); margin-top: .2rem;">Hari Ini</div>
+    </div>
+    <div class="card" style="padding: 1.2rem; text-align: center;">
+        <div style="font-size: 1.1rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ stats.top_tool }}</div>
+        <div style="font-size: .85rem; color: var(--text-muted); margin-top: .2rem;">Tool Terpopuler ({{ stats.top_tool_count }}×)</div>
+    </div>
+</div>
+
+<!-- Log Table -->
+<div class="card" style="margin-top: 1.5rem;">
     <div style="overflow-x: auto;">
         <table class="history-table" style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead>
                 <tr style="border-bottom: 2px solid var(--border); background: var(--surface);">
-                    <th style="padding: 1rem;" data-i18n-text="history.col.id">ID</th>
-                    <th style="padding: 1rem;" data-i18n-text="history.col.time">Timestamp</th>
-                    <th style="padding: 1rem;" data-i18n-text="history.col.tool">Tool Endpoint</th>
-                    <th style="padding: 1rem;" data-i18n-text="history.col.status">Status</th>
+                    <th style="padding: .8rem;">ID</th>
+                    <th style="padding: .8rem;">Waktu</th>
+                    <th style="padding: .8rem;">Tool</th>
+                    <th style="padding: .8rem;">Kategori</th>
+                    <th style="padding: .8rem;">Status</th>
+                    <th style="padding: .8rem;">Durasi</th>
+                    <th style="padding: .8rem;">Detail</th>
                 </tr>
             </thead>
             <tbody>
                 {% for log in logs %}
                 <tr style="border-bottom: 1px solid var(--border);">
-                    <td style="padding: 1rem;">#{{ log.id }}</td>
-                    <td style="padding: 1rem;">{{ log.timestamp }}</td>
-                    <td style="padding: 1rem;"><code style="background: var(--bg); padding: .2rem .5rem; border-radius: 4px;">{{ log.tool_endpoint }}</code></td>
-                    <td style="padding: 1rem;">
+                    <td style="padding: .8rem; color: var(--text-muted); font-size: .85rem;">#{{ log.id }}</td>
+                    <td style="padding: .8rem; font-size: .85rem; white-space: nowrap;">{{ log.timestamp }}</td>
+                    <td style="padding: .8rem;">
+                        <div style="font-weight: 600; font-size: .9rem;">{{ log.tool_name }}</div>
+                        <code style="font-size: .75rem; color: var(--text-muted);">{{ log.tool_endpoint }}</code>
+                    </td>
+                    <td style="padding: .8rem;">
+                        {% if log.category %}
+                        <span style="background: var(--surface); padding: .2rem .6rem; border-radius: 6px; font-size: .8rem; border: 1px solid var(--border);">{{ log.category }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: .8rem;">
                         {% if log.status_code >= 200 and log.status_code < 300 %}
-                        <span style="background: rgba(34, 197, 94, 0.2); color: #16a34a; padding: .3rem .8rem; border-radius: 9999px; font-weight: 500; font-size: .875rem;">Success ({{ log.status_code }})</span>
+                        <span style="background: rgba(34, 197, 94, 0.15); color: #16a34a; padding: .3rem .7rem; border-radius: 9999px; font-weight: 600; font-size: .8rem; display: inline-flex; align-items: center; gap: .3rem;">
+                            <i class="bi bi-check-circle-fill"></i> {{ log.status_code }}
+                        </span>
+                        {% elif log.status_code >= 400 and log.status_code < 500 %}
+                        <span style="background: rgba(245, 158, 11, 0.15); color: #d97706; padding: .3rem .7rem; border-radius: 9999px; font-weight: 600; font-size: .8rem; display: inline-flex; align-items: center; gap: .3rem;">
+                            <i class="bi bi-exclamation-triangle-fill"></i> {{ log.status_code }}
+                        </span>
                         {% else %}
-                        <span style="background: rgba(239, 68, 68, 0.2); color: #dc2626; padding: .3rem .8rem; border-radius: 9999px; font-weight: 500; font-size: .875rem;">Failed ({{ log.status_code }})</span>
+                        <span style="background: rgba(239, 68, 68, 0.15); color: #dc2626; padding: .3rem .7rem; border-radius: 9999px; font-weight: 600; font-size: .8rem; display: inline-flex; align-items: center; gap: .3rem;">
+                            <i class="bi bi-x-circle-fill"></i> {{ log.status_code }}
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: .8rem; font-size: .85rem; white-space: nowrap; color: var(--text-muted);">
+                        {% if log.duration_ms > 0 %}
+                            {% if log.duration_ms >= 1000 %}
+                                {{ "%.1f"|format(log.duration_ms / 1000) }}s
+                            {% else %}
+                                {{ log.duration_ms }}ms
+                            {% endif %}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td style="padding: .8rem; font-size: .82rem; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ log.detail }}">
+                        {% if log.detail %}
+                            {% if log.detail.startswith('Error:') %}
+                                <span style="color: #dc2626;">{{ log.detail }}</span>
+                            {% elif log.detail.startswith('File:') %}
+                                <span style="color: var(--text-light);"><i class="bi bi-file-earmark" style="margin-right: .2rem;"></i>{{ log.detail[6:] }}</span>
+                            {% elif log.detail.startswith('Input:') %}
+                                <span style="color: var(--text-light);"><i class="bi bi-type" style="margin-right: .2rem;"></i>{{ log.detail[7:] }}</span>
+                            {% else %}
+                                {{ log.detail }}
+                            {% endif %}
+                        {% else %}
+                            <span style="color: var(--text-muted);">-</span>
                         {% endif %}
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="4" style="padding: 2rem; text-align: center; color: var(--text-muted);" data-i18n-text="history.empty">
-                        No activity recorded yet. Process a PDF or Image to see logs here!
+                    <td colspan="7" style="padding: 3rem; text-align: center; color: var(--text-muted);" data-i18n-text="history.empty">
+                        Belum ada aktivitas tercatat. Proses file untuk melihat riwayat di sini!
                     </td>
                 </tr>
                 {% endfor %}
