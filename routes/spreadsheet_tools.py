@@ -1,6 +1,7 @@
 import io
 import csv
 import json
+from datetime import datetime, date, time as dt_time
 from flask import Blueprint, render_template, request, send_file, jsonify
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Font, PatternFill, Alignment
@@ -67,8 +68,7 @@ def read_workbook(file_data: bytes, filename: str) -> dict[str, list[list]]:
 def _normalize_cell(v):
     if v is None:
         return ""
-    from datetime import datetime, date, time
-    if isinstance(v, (datetime, date, time)):
+    if isinstance(v, (datetime, date, dt_time)):
         return v.isoformat()
     return v
 

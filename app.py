@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 import logger
 
 app = Flask(__name__)
@@ -125,7 +125,43 @@ TOOL_CATEGORIES = [
             {"id": "hash-generator", "name": "Hash Generator", "desc": "Generate MD5, SHA hashes", "icon": "bi-fingerprint"},
         ],
     },
+    {
+        "id": "network",
+        "name": "Alat Jaringan",
+        "icon": "bi-hdd-network-fill",
+        "tools": [
+            {"id": "ping", "name": "Cek Ping", "desc": "Periksa konektivitas dan latensi jaringan", "icon": "bi-activity"},
+        ],
+    },
 ]
+
+
+# Build endpoint → human-readable name mapping from TOOL_CATEGORIES
+ENDPOINT_NAMES = {}
+ENDPOINT_CATEGORIES = {}
+for _cat in TOOL_CATEGORIES:
+    for _tool in _cat["tools"]:
+        # Blueprint endpoints use format: "blueprint.function_name"
+        # Function names replace hyphens with underscores
+        _fn = _tool["id"].replace("-", "_")
+        _ep = f"{_cat['id']}.{_fn}"
+        ENDPOINT_NAMES[_ep] = _tool["name"]
+        ENDPOINT_CATEGORIES[_ep] = _cat["name"]
+    # Also map POST processing endpoints (some differ from page route names)
+    # e.g., convert.to_pdf (page) → convert.to_pdf (POST) share the same endpoint
+# Special overrides for endpoints whose function names differ from tool IDs
+ENDPOINT_NAMES.update({
+    "pdf.process_delete": "Delete Pages",
+    "pdf.process_watermark": "PDF Watermark",
+    "convert.process_pdf_excel": "PDF to Excel",
+    "network.process_ping": "Cek Ping",
+})
+ENDPOINT_CATEGORIES.update({
+    "pdf.process_delete": "PDF Tools",
+    "pdf.process_watermark": "PDF Tools",
+    "convert.process_pdf_excel": "Document Conversion",
+    "network.process_ping": "Alat Jaringan",
+})
 
 
 @app.context_processor
@@ -140,35 +176,75 @@ def index():
 @app.route("/history")
 def history():
     logs = logger.get_logs()
-    return render_template("history.html", logs=logs)
+    stats = logger.get_stats()
+    return render_template("history.html", logs=logs, stats=stats)
 
 @app.route("/clear_history", methods=["POST"])
 def clear_history():
     logger.clear_logs()
-    from flask import redirect, url_for
     return redirect(url_for("history"))
+
+import time as _time
+
+@app.before_request
+def before_request_timer():
+    request._start_time = _time.time()
 
 @app.after_request
 def after_request_logger(response):
     if request.method == "POST" and request.endpoint:
-        # Ignore endpoints that are not tools (e.g. static files)
-        if "." in request.endpoint:
+        # Skip static files and internal endpoints
+        if request.endpoint not in ("static", "clear_history"):
+            # Calculate duration
+            duration_ms = 0
+            if hasattr(request, "_start_time"):
+                duration_ms = int((_time.time() - request._start_time) * 1000)
+
+            # Resolve human-readable names
+            ep = request.endpoint
+            tool_name = ENDPOINT_NAMES.get(ep, ep.replace(".", " › ").replace("_", " ").title())
+            category = ENDPOINT_CATEGORIES.get(ep, ep.split(".")[0].title() if "." in ep else "")
+
+            # Extract detail info
+            detail = ""
+            if response.status_code >= 400:
+                # Try to get error message from JSON response
+                try:
+                    data = response.get_json(silent=True)
+                    if data and "error" in data:
+                        detail = f"Error: {data['error'][:250]}"
+                except Exception:
+                    detail = f"HTTP {response.status_code}"
+            else:
+                # For success, note file info if available
+                files = request.files.getlist("files")
+                if files and files[0].filename:
+                    fnames = ", ".join(f.filename for f in files if f.filename)
+                    detail = f"File: {fnames[:200]}"
+                elif request.form.get("text"):
+                    text_preview = request.form["text"][:80]
+                    detail = f'Input: "{text_preview}..."' if len(request.form["text"]) > 80 else f'Input: "{text_preview}"'
+
             logger.log_activity(
-                tool_endpoint=request.endpoint,
+                tool_endpoint=ep,
                 status_code=response.status_code,
-                user_agent=request.headers.get('User-Agent', '')
+                user_agent=request.headers.get('User-Agent', ''),
+                tool_name=tool_name,
+                category=category,
+                detail=detail,
+                duration_ms=duration_ms,
             )
     return response
 
 
 @app.errorhandler(413)
 def too_large(e):
-    return {"error": "File too large. Maximum size is 100 MB."}, 413
+    return {"error": "File terlalu besar. Maksimum ukuran file adalah 100 MB."}, 413
 
 
 @app.errorhandler(500)
 def server_error(e):
-    return {"error": "An internal error occurred."}, 500
+    return {"error": f"Terjadi kesalahan internal server: {str(e)}"}, 500
 
 
 # Register blueprints
@@ -180,6 +256,7 @@ from routes.calculator_tools import bp as calc_bp
 from routes.qr_tools import bp as qr_bp
 from routes.security_tools import bp as security_bp
 from routes.spreadsheet_tools import bp as spreadsheet_bp
+from routes.network_tools import bp as network_bp
 
 app.register_blueprint(convert_bp, url_prefix="/convert")
 app.register_blueprint(pdf_bp, url_prefix="/pdf")
@@ -189,6 +266,7 @@ app.register_blueprint(calc_bp, url_prefix="/calc")
 app.register_blueprint(qr_bp, url_prefix="/qr")
 app.register_blueprint(security_bp, url_prefix="/security")
 app.register_blueprint(spreadsheet_bp, url_prefix="/spreadsheet")
+app.register_blueprint(network_bp, url_prefix="/network")
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

@@ -103,6 +103,10 @@
                     </label>
                     {% endfor %}
                 </div>
+
+                {% elif opt.type == 'color' %}
+                <input type="color" id="opt-{{ opt.name }}" name="{{ opt.name }}"
+                    value="{{ opt.value|default('#000000') }}">
                 {% endif %}
             </div>
             {% endfor %}

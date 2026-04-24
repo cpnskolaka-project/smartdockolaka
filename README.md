@@ -108,6 +108,11 @@ A lightweight, self-hosted web app that bundles 57 everyday utilities into a sin
 | **Password Generator** | Generate strong random passwords with configurable length, character types, and entropy display |
 | **Hash Generator** | Generate MD5, SHA-1, SHA-256, and SHA-512 hashes from text |
 
+### Network Tools
+| Tool | Description |
+|------|-------------|
+| **Ping Check** | Check network connectivity and latency to a specific hostname or IP address |
+
 ---
 
 ## Quick Start

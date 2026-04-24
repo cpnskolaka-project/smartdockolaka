@@ -79,7 +79,7 @@ def generate():
 @bp.route("/read", methods=["POST"])
 def read():
     if not HAS_PYZBAR:
-        return jsonify(error="QR reading requires the 'pyzbar' package. Install with: pip install pyzbar"), 400
+        return jsonify(error="Modul pembaca QR (pyzbar/zbar) gagal dimuat. Jika Anda menggunakan macOS, buka Terminal dan jalankan: 'brew install zbar'. Jika di Windows, pastikan Visual C++ Redistributable 2013 telah terinstal."), 400
 
     files = request.files.getlist("files")
     if not files or not files[0].filename:
