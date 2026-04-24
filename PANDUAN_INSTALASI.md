@@ -43,7 +43,7 @@ Kini mesin telah siap, saatnya membangkitkan aplikasi utama!
    - menawarkan pemasangan autostart Windows pada pemakaian pertama
    - membuka aplikasi lokal di browser
 4. Jangan menekan tanda silang merah `[X]` pada terminal ini saat aplikasi sedang dipakai. Jika ditutup, maka *Web Server* akan berhenti.
-5. Anda bisa langsung menikmati aplikasi di peramban internet (*Browser* Chrome/Edge) melalui alamat: **`http://127.0.0.1:5000`**
+5. Anda bisa langsung menikmati aplikasi di peramban internet (*Browser* Chrome/Edge) melalui alamat: **`http://127.0.0.1:5050`**
 
 ### Mode Perbaikan Cepat dari Launcher
 

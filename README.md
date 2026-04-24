@@ -149,7 +149,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Open **http://127.0.0.1:5000** in your browser.
+Open **http://127.0.0.1:5050** in your browser.
 
 ### Recommended one-file launchers
 
@@ -162,7 +162,7 @@ These launchers will:
 - install dependencies from the internet on first install or when reinstall/repair is requested
 - offer `install`, `reinstall`, and `repair` modes directly from the launcher
 - offer to configure autostart on first run
-- start the local app on `127.0.0.1:5000`
+- start the local app on `127.0.0.1:5050`
 
 ## Install Once, Use Offline
 
@@ -296,7 +296,7 @@ The app has sensible defaults. You can adjust these in `app.py`:
 |---------|---------|-------------|
 | `MAX_CONTENT_LENGTH` | `100 MB` | Maximum upload file size |
 | `debug` | `True` | Flask debug mode (disable in production) |
-| `port` | `5000` | Server port |
+| `port` | `5050` | Server port |
 
 ---
 
