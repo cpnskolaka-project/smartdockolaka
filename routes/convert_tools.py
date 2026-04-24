@@ -4,7 +4,7 @@ import tempfile
 import subprocess
 import shutil
 import fitz  # PyMuPDF
-from flask import Blueprint, render_template, request, send_file, jsonify
+from flask import Blueprint, current_app, render_template, request, send_file, jsonify
 from PIL import Image
 import img2pdf
 from docx import Document as DocxDocument
@@ -158,16 +158,12 @@ def cad_to_pdf_page():
         )
     else:
         notes = (
-            '<p><strong>DXF works out of the box.</strong> DWG files need the free '
-            '<a href="https://www.opendesign.com/guestfiles/oda_file_converter" target="_blank" rel="noopener">'
-            'ODA File Converter</a> installed and available on your system <code>PATH</code>.</p>'
+            '<p><strong>DXF bisa langsung digunakan.</strong> Untuk file DWG, pasang ODA File Converter dari paket instalasi internal lalu pastikan aplikasinya terdaftar di <code>PATH</code>.</p>'
             '<details>'
             '<summary>How to install ODA File Converter</summary>'
             '<ol>'
-            '<li>Download the installer for your OS from '
-            '<a href="https://www.opendesign.com/guestfiles/oda_file_converter" target="_blank" rel="noopener">opendesign.com</a> '
-            '(free, guest download — no account required).</li>'
-            '<li>Run the installer. Defaults are fine.</li>'
+            '<li>Gunakan installer ODA yang sudah disiapkan pada paket distribusi internal.</li>'
+            '<li>Jalankan installer dengan opsi standar.</li>'
             '<li><strong>Add it to your PATH so this app can find it:</strong>'
             '<ul>'
             '<li><strong>Windows:</strong> add <code>C:\\Program Files\\ODA\\ODAFileConverter_title_version</code> '
@@ -178,7 +174,7 @@ def cad_to_pdf_page():
             '<li>Open a new terminal and verify: <code>ODAFileConverter</code> (should launch the tool GUI, or exit silently).</li>'
             '<li><strong>Restart this Flask server</strong> so it picks up the updated PATH.</li>'
             '</ol>'
-            '<p style="margin-top:.4rem">Alternative: open your DWG in free tools like <a href="https://www.autodesk.com/viewers" target="_blank" rel="noopener">Autodesk Viewer</a>, LibreCAD, or QCAD and export it as DXF, then upload the DXF here.</p>'
+            '<p style="margin-top:.4rem">Alternatif offline: konversi DWG ke DXF menggunakan tool CAD yang tersedia di kantor, lalu unggah file DXF ke aplikasi ini.</p>'
             '</details>'
         )
 
@@ -371,7 +367,7 @@ def to_pdf():
 @bp.route("/pdf-to-word", methods=["POST"])
 def pdf_to_word():
     if not HAS_PDF2DOCX:
-        return jsonify(error="pdf2docx package not installed. Run: pip install pdf2docx"), 400
+        return jsonify(error="Modul PDF ke Word belum terpasang. Lengkapi dependency dari paket instalasi lokal."), 400
 
     files = request.files.getlist("files")
     if not files or not files[0].filename:
@@ -458,15 +454,60 @@ def pdf_to_images():
         return jsonify(error="No file uploaded."), 400
 
     fmt = request.form.get("format", "png")
-    dpi = int(request.form.get("dpi", 200))
+    dpi = max(72, min(int(request.form.get("dpi", 200)), current_app.config["MAX_RENDER_DPI"]))
 
     pdf_data = files[0].read()
+    filename = files[0].filename
+    is_sse = request.headers.get("Accept") == "text/event-stream"
+
+    def generate():
+        import base64
+        import json
+        try:
+            doc = fitz.open(stream=pdf_data, filetype="pdf")
+            images = []
+            mat = fitz.Matrix(dpi / 72, dpi / 72)
+            total = len(doc)
+
+            for i, page in enumerate(doc):
+                if is_sse:
+                    yield f"data: {json.dumps({'progress': True, 'page': i + 1, 'total': total})}\n\n"
+                    
+                pix = page.get_pixmap(matrix=mat)
+                if fmt == "jpg":
+                    img_bytes = pix.tobytes("jpeg")
+                    ext = "jpg"
+                else:
+                    img_bytes = pix.tobytes("png")
+                    ext = "png"
+                images.append((f"page_{i + 1}.{ext}", img_bytes))
+
+            doc.close()
+
+            if len(images) == 1:
+                mime = "image/png" if fmt == "png" else "image/jpeg"
+                data = images[0][1]
+                dl_name = images[0][0]
+            else:
+                data = make_zip(images).getvalue()
+                dl_name = filename.rsplit(".", 1)[0] + "_images.zip"
+                mime = "application/zip"
+
+            if is_sse:
+                b64 = base64.b64encode(data).decode('utf-8')
+                yield f"data: {json.dumps({'complete': True, 'filename': dl_name, 'data': b64, 'mime': mime})}\n\n"
+        except Exception as e:
+            if is_sse:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+
+    if is_sse:
+        from flask import Response
+        return Response(generate(), mimetype="text/event-stream")
+
+    # Fallback normal processing
     doc = fitz.open(stream=pdf_data, filetype="pdf")
-
-
     images = []
     mat = fitz.Matrix(dpi / 72, dpi / 72)
-
     for i, page in enumerate(doc):
         pix = page.get_pixmap(matrix=mat)
         if fmt == "jpg":
@@ -476,7 +517,6 @@ def pdf_to_images():
             img_bytes = pix.tobytes("png")
             ext = "png"
         images.append((f"page_{i + 1}.{ext}", img_bytes))
-
     doc.close()
 
     if len(images) == 1:
@@ -485,7 +525,7 @@ def pdf_to_images():
                          as_attachment=True, download_name=images[0][0])
 
     zip_buf = make_zip(images)
-    name = files[0].filename.rsplit(".", 1)[0] + "_images.zip"
+    name = filename.rsplit(".", 1)[0] + "_images.zip"
     return send_file(zip_buf, mimetype="application/zip",
                      as_attachment=True, download_name=name)
 
@@ -538,7 +578,7 @@ def html_to_pdf():
 @bp.route("/ocr-pdf", methods=["POST"])
 def ocr_pdf():
     if not HAS_TESSERACT:
-        return jsonify(error="OCR requires 'pytesseract' and the Tesseract binary. Install: pip install pytesseract, plus Tesseract from https://github.com/tesseract-ocr/tesseract"), 400
+        return jsonify(error="OCR memerlukan pytesseract dan binary Tesseract. Lengkapi dari paket instalasi lokal terlebih dahulu."), 400
 
     files = request.files.getlist("files")
     if not files or not files[0].filename:
@@ -546,9 +586,73 @@ def ocr_pdf():
 
     mode = request.form.get("mode", "searchable")
     lang = request.form.get("lang", "eng")
-    dpi = int(request.form.get("dpi", 200))
+    dpi = max(72, min(int(request.form.get("dpi", 200)), current_app.config["MAX_RENDER_DPI"]))
 
     pdf_data = files[0].read()
+    filename = files[0].filename
+    is_sse = request.headers.get("Accept") == "text/event-stream"
+    
+    def generate():
+        import base64
+        import json
+        try:
+            src = fitz.open(stream=pdf_data, filetype="pdf")
+            zoom = dpi / 72
+            total = len(src)
+
+            if mode == "text":
+                text_parts = []
+                for i, page in enumerate(src):
+                    if is_sse:
+                        yield f"data: {json.dumps({'progress': True, 'page': i + 1, 'total': total})}\n\n"
+                    pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom))
+                    img = Image.open(io.BytesIO(pix.tobytes("png")))
+                    text = pytesseract.image_to_string(img, lang=lang)
+                    text_parts.append(f"--- Page {i + 1} ---\n{text.strip()}")
+                src.close()
+                combined = "\n\n".join(text_parts).strip()
+                if is_sse:
+                    yield f"data: {json.dumps({'complete': True, 'text': combined or '(No text detected)'})}\n\n"
+                return
+
+            output = fitz.open()
+            for i, page in enumerate(src):
+                if is_sse:
+                    yield f"data: {json.dumps({'progress': True, 'page': i + 1, 'total': total})}\n\n"
+                pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom))
+                img = Image.open(io.BytesIO(pix.tobytes("png")))
+                page_pdf_bytes = pytesseract.image_to_pdf_or_hocr(img, extension="pdf", lang=lang)
+                sub = fitz.open(stream=page_pdf_bytes, filetype="pdf")
+                output.insert_pdf(sub)
+                sub.close()
+            src.close()
+
+            buf = io.BytesIO()
+            output.save(buf)
+            output.close()
+            data = buf.getvalue()
+
+            dl_name = filename.rsplit(".", 1)[0] + "_ocr.pdf"
+            if is_sse:
+                b64 = base64.b64encode(data).decode('utf-8')
+                yield f"data: {json.dumps({'complete': True, 'filename': dl_name, 'data': b64, 'mime': 'application/pdf'})}\n\n"
+        except pytesseract.TesseractNotFoundError:
+            if is_sse:
+                yield f"data: {json.dumps({'error': 'Binary Tesseract tidak ditemukan pada sistem.'})}\n\n"
+        except Exception as e:
+            msg = str(e)
+            if "language" in msg.lower() or "traineddata" in msg.lower():
+                err = f"Language pack '{lang}' belum tersedia. Tambahkan file traineddata ke folder tessdata Tesseract lokal."
+            else:
+                err = f"OCR failed: {msg}"
+            if is_sse:
+                yield f"data: {json.dumps({'error': err})}\n\n"
+
+    if is_sse:
+        from flask import Response
+        return Response(generate(), mimetype="text/event-stream")
+
+    # Fallback normal processing
     src = fitz.open(stream=pdf_data, filetype="pdf")
     zoom = dpi / 72
 
@@ -579,29 +683,29 @@ def ocr_pdf():
         output.close()
         buf.seek(0)
 
-        name = files[0].filename.rsplit(".", 1)[0] + "_ocr.pdf"
+        name = filename.rsplit(".", 1)[0] + "_ocr.pdf"
         return send_file(buf, mimetype="application/pdf",
                          as_attachment=True, download_name=name)
     except pytesseract.TesseractNotFoundError:
-        return jsonify(error="Tesseract binary not found. Install from https://github.com/tesseract-ocr/tesseract and ensure it is on PATH."), 400
+        return jsonify(error="Binary Tesseract tidak ditemukan pada sistem. Pastikan Tesseract sudah dipasang dan masuk ke PATH komputer lokal."), 400
     except Exception as e:
         msg = str(e)
         if "language" in msg.lower() or "traineddata" in msg.lower():
-            return jsonify(error=f"Language pack '{lang}' not installed. Download its .traineddata file into your Tesseract tessdata directory."), 400
+            return jsonify(error=f"Language pack '{lang}' belum tersedia. Tambahkan file traineddata ke folder tessdata Tesseract lokal."), 400
         return jsonify(error=f"OCR failed: {msg}"), 400
 
 
 @bp.route("/cad-to-pdf", methods=["POST"])
 def cad_to_pdf():
     if not HAS_EZDXF:
-        return jsonify(error="CAD conversion requires 'ezdxf' and 'matplotlib'. Install: pip install ezdxf matplotlib"), 400
+        return jsonify(error="Konversi CAD memerlukan ezdxf dan matplotlib. Lengkapi dependency dari paket instalasi lokal."), 400
 
     files = request.files.getlist("files")
     if not files or not files[0].filename:
         return jsonify(error="No file uploaded."), 400
 
     target = request.form.get("format", "pdf")
-    dpi = int(request.form.get("dpi", 150))
+    dpi = max(72, min(int(request.form.get("dpi", 150)), current_app.config["MAX_CAD_DPI"]))
 
     filename = files[0].filename
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
@@ -613,7 +717,7 @@ def cad_to_pdf():
         tmp_dir = tempfile.mkdtemp()
         if ext == "dwg":
             if not ODA_CONVERTER:
-                return jsonify(error="DWG support requires ODA File Converter. Download it free from https://www.opendesign.com/guestfiles/oda_file_converter and ensure it is on your PATH. Or convert your DWG to DXF first."), 400
+                return jsonify(error="Dukungan DWG memerlukan ODA File Converter dari paket instalasi internal. Atau konversi file DWG menjadi DXF terlebih dahulu."), 400
 
             in_dir = os.path.join(tmp_dir, "in")
             out_dir = os.path.join(tmp_dir, "out")
@@ -626,7 +730,7 @@ def cad_to_pdf():
             try:
                 subprocess.run(
                     [ODA_CONVERTER, in_dir, out_dir, "ACAD2018", "DXF", "0", "1", "*.DWG"],
-                    check=True, capture_output=True, timeout=60,
+                    check=True, capture_output=True, timeout=current_app.config["CAD_TIMEOUT_SECONDS"],
                 )
             except subprocess.CalledProcessError as e:
                 return jsonify(error=f"DWG to DXF conversion failed: {e.stderr.decode(errors='replace')[:200]}"), 400

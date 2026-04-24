@@ -9,8 +9,15 @@
         {% if ep_parts|length >= 2 %}
             {% set cat_id = ep_parts[0] %}
             {% set tool_id = ep_parts[1] %}
-            <h1 data-i18n-text="tool.{{ cat_id }}.{{ tool_id }}">{{ title }}</h1>
-            <p data-i18n-text="desc.{{ cat_id }}.{{ tool_id }}">{{ description }}</p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h1 data-i18n-text="tool.{{ cat_id }}.{{ tool_id }}">{{ title }}</h1>
+                    <p data-i18n-text="desc.{{ cat_id }}.{{ tool_id }}">{{ description }}</p>
+                </div>
+                <button class="favorite-btn" data-tool="{{ cat_id }}.{{ tool_id }}" aria-label="Toggle Favorite" onclick="toggleFavorite(this, '{{ cat_id }}.{{ tool_id }}')">
+                    <i class="bi bi-star"></i>
+                </button>
+            </div>
         {% else %}
             <h1>{{ title }}</h1>
             <p>{{ description }}</p>
@@ -35,10 +42,12 @@
             <input type="file" id="file-input" name="files"
                 accept="{{ accept }}" {{ 'multiple' if multiple }}>
             <div class="upload-prompt" id="upload-prompt">
-                <i class="bi bi-cloud-arrow-up"></i>
-                <p data-i18n-text="upload.drag">Drag &amp; drop file{{ 's' if multiple }} here</p>
-                <span data-i18n-text="upload.browse">or click to browse</span>
-                {% if accept %}<small>Accepted: {{ accept }}</small>{% endif %}
+                <div class="upload-icon-wrap">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                </div>
+                <p class="upload-title" data-i18n-text="upload.drag">Drag &amp; drop file{{ 's' if multiple }} here</p>
+                <span class="upload-subtitle" data-i18n-text="upload.browse">or click to browse</span>
+                {% if accept %}<span class="upload-accepted">{{ accept }}</span>{% endif %}
             </div>
             <div class="file-list" id="file-list"></div>
         </div>
@@ -119,6 +128,16 @@
                 <i class="bi bi-arrow-repeat spin"></i> <span data-i18n-text="upload.processing">Processing...</span>
             </span>
         </button>
+        
+        <div id="progress-area" class="progress-container" style="display:none">
+            <div class="progress-info">
+                <span class="progress-label" id="progress-label">Menyiapkan...</span>
+                <span class="progress-percent" id="progress-percent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+            </div>
+        </div>
     </form>
 
     <div id="result-area" class="result-area" style="display:none">

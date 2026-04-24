@@ -1,9 +1,18 @@
-import os
 from flask import Flask, render_template, request, redirect, url_for
+from PIL import Image
+
 import logger
+from config import Config
+from utils.file_utils import (
+    describe_files,
+    parse_accept_string,
+    summarize_file_sizes,
+    validate_uploaded_files,
+)
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100 MB max upload
+app.config.from_object(Config)
+Image.MAX_IMAGE_PIXELS = app.config["MAX_IMAGE_PIXELS"]
 
 # Initialize DB
 logger.init_db()
@@ -123,6 +132,7 @@ TOOL_CATEGORIES = [
         "tools": [
             {"id": "password-generator", "name": "Password Generator", "desc": "Generate strong random passwords", "icon": "bi-key-fill"},
             {"id": "hash-generator", "name": "Hash Generator", "desc": "Generate MD5, SHA hashes", "icon": "bi-fingerprint"},
+            {"id": "system-check", "name": "System Check", "desc": "Inspect local readiness, optional dependencies, and autostart status", "icon": "bi-clipboard2-pulse"},
         ],
     },
     {
@@ -163,6 +173,45 @@ ENDPOINT_CATEGORIES.update({
     "network.process_ping": "Alat Jaringan",
 })
 
+UPLOAD_POLICIES = {
+    "convert.to_pdf": {"accept": ".jpg,.jpeg,.png,.bmp,.tiff,.webp,.txt,.docx"},
+    "convert.pdf_to_word": {"accept": ".pdf"},
+    "convert.process_pdf_excel": {"accept": ".pdf"},
+    "convert.pdf_to_images": {"accept": ".pdf"},
+    "convert.pdf_to_text": {"accept": ".pdf"},
+    "convert.ocr_pdf": {"accept": ".pdf", "max_pdf_pages": "MAX_OCR_PDF_PAGES"},
+    "convert.cad_to_pdf": {"accept": ".dxf,.dwg", "max_single_size": "MAX_CAD_FILE_SIZE"},
+    "pdf.merge": {"accept": ".pdf"},
+    "pdf.split": {"accept": ".pdf"},
+    "pdf.compress": {"accept": ".pdf"},
+    "pdf.rotate": {"accept": ".pdf"},
+    "pdf.resize": {"accept": ".pdf"},
+    "pdf.page_numbers": {"accept": ".pdf"},
+    "pdf.extract_images": {"accept": ".pdf"},
+    "pdf.protect": {"accept": ".pdf"},
+    "pdf.unlock": {"accept": ".pdf"},
+    "pdf.process_delete": {"accept": ".pdf"},
+    "pdf.process_watermark": {"accept": ".pdf"},
+    "spreadsheet.excel_to_csv": {"accept": ".xlsx,.xlsm,.xls"},
+    "spreadsheet.csv_to_excel": {"accept": ".csv,.json"},
+    "spreadsheet.excel_to_pdf": {"accept": ".xlsx,.xlsm,.xls"},
+    "spreadsheet.merge": {"accept": ".xlsx,.xlsm,.xls"},
+    "spreadsheet.split": {"accept": ".xlsx,.xlsm,.xls"},
+    "spreadsheet.info": {"accept": ".xlsx,.xlsm,.xls"},
+    "image.resize": {"accept": ".jpg,.jpeg,.png,.bmp,.tiff,.webp", "max_image_pixels": "MAX_IMAGE_PIXELS"},
+    "image.compress": {"accept": ".jpg,.jpeg,.png,.bmp,.tiff,.webp", "max_image_pixels": "MAX_IMAGE_PIXELS"},
+    "image.convert": {"accept": ".jpg,.jpeg,.png,.bmp,.tiff,.webp", "max_image_pixels": "MAX_IMAGE_PIXELS"},
+    "image.remove_bg": {"accept": ".jpg,.jpeg,.png,.bmp,.tiff,.webp", "max_image_pixels": "MAX_IMAGE_PIXELS"},
+    "image.crop": {"accept": ".jpg,.jpeg,.png,.bmp,.tiff,.webp", "max_image_pixels": "MAX_IMAGE_PIXELS"},
+    "image.rotate": {"accept": ".jpg,.jpeg,.png,.bmp,.tiff,.webp", "max_image_pixels": "MAX_IMAGE_PIXELS"},
+    "image.watermark": {"accept": ".jpg,.jpeg,.png,.bmp,.tiff,.webp", "max_image_pixels": "MAX_IMAGE_PIXELS"},
+    "image.exif": {"accept": ".jpg,.jpeg,.png,.bmp,.tiff,.webp", "max_image_pixels": "MAX_IMAGE_PIXELS"},
+    "image.favicon": {"accept": ".jpg,.jpeg,.png,.bmp,.tiff,.webp", "max_image_pixels": "MAX_IMAGE_PIXELS"},
+    "image.animated": {"accept": ".gif,.webp", "max_image_pixels": "MAX_IMAGE_PIXELS"},
+    "image.ocr": {"accept": ".jpg,.jpeg,.png,.bmp,.tiff,.webp", "max_image_pixels": "MAX_IMAGE_PIXELS"},
+    "qr.read": {"accept": ".jpg,.jpeg,.png,.bmp,.webp,.gif", "max_image_pixels": "MAX_IMAGE_PIXELS"},
+}
+
 
 @app.context_processor
 def inject_tools():
@@ -175,11 +224,15 @@ def index():
 
 @app.route("/history")
 def history():
-    logs = logger.get_logs()
+    logs = logger.get_logs(limit=100)
     stats = logger.get_stats()
     return render_template("history.html", logs=logs, stats=stats)
 
-@app.route("/clear_history", methods=["POST"])
+@app.route("/favorites")
+def favorites():
+    return render_template("favorites.html")
+
+@app.route("/clear-history", methods=["POST"])
 def clear_history():
     logger.clear_logs()
     return redirect(url_for("history"))
@@ -189,6 +242,48 @@ import time as _time
 @app.before_request
 def before_request_timer():
     request._start_time = _time.time()
+    if request.method == "POST":
+        _validate_request()
+
+
+def _get_int_form_value(name, default):
+    raw_value = request.form.get(name, "")
+    if raw_value == "":
+        return default
+    try:
+        return int(raw_value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Nilai '{name}' tidak valid.") from exc
+
+
+def _validate_request():
+    policy = UPLOAD_POLICIES.get(request.endpoint)
+    if policy:
+        files = [f for f in request.files.getlist("files") if f and f.filename]
+        if files:
+            validate_uploaded_files(
+                files,
+                parse_accept_string(policy["accept"]),
+                max_file_count=app.config["MAX_UPLOAD_FILES"],
+                max_pdf_pages=app.config[policy["max_pdf_pages"]] if "max_pdf_pages" in policy else app.config["MAX_PDF_PAGES"],
+                max_image_pixels=app.config[policy["max_image_pixels"]] if "max_image_pixels" in policy else None,
+                max_single_size=app.config[policy["max_single_size"]] if "max_single_size" in policy else None,
+            )
+
+    if request.endpoint in {"convert.pdf_to_images", "convert.ocr_pdf"}:
+        dpi = _get_int_form_value("dpi", 200)
+        if dpi < 72 or dpi > app.config["MAX_RENDER_DPI"]:
+            raise ValueError(f"DPI harus berada di antara 72 dan {app.config['MAX_RENDER_DPI']}.")
+
+    if request.endpoint == "convert.cad_to_pdf":
+        dpi = _get_int_form_value("dpi", 150)
+        if dpi < 72 or dpi > app.config["MAX_CAD_DPI"]:
+            raise ValueError(f"DPI CAD harus berada di antara 72 dan {app.config['MAX_CAD_DPI']}.")
+
+    if request.endpoint == "network.process_ping":
+        host = (request.form.get("text") or "").strip()
+        if len(host) > 255:
+            raise ValueError("Hostname terlalu panjang.")
 
 @app.after_request
 def after_request_logger(response):
@@ -216,14 +311,19 @@ def after_request_logger(response):
                 except Exception:
                     detail = f"HTTP {response.status_code}"
             else:
-                # For success, note file info if available
                 files = request.files.getlist("files")
                 if files and files[0].filename:
-                    fnames = ", ".join(f.filename for f in files if f.filename)
-                    detail = f"File: {fnames[:200]}"
+                    if app.config["PRIVACY_MODE"]:
+                        detail = f"{describe_files(files)} ({summarize_file_sizes(files)})"
+                    else:
+                        fnames = ", ".join(f.filename for f in files if f.filename)
+                        detail = f"File: {fnames[:200]}"
                 elif request.form.get("text"):
-                    text_preview = request.form["text"][:80]
-                    detail = f'Input: "{text_preview}..."' if len(request.form["text"]) > 80 else f'Input: "{text_preview}"'
+                    if app.config["PRIVACY_MODE"]:
+                        detail = f"Input teks ({len(request.form['text'])} karakter)"
+                    else:
+                        text_preview = request.form["text"][:80]
+                        detail = f'Input: "{text_preview}..."' if len(request.form["text"]) > 80 else f'Input: "{text_preview}"'
 
             logger.log_activity(
                 tool_endpoint=ep,
@@ -242,9 +342,16 @@ def too_large(e):
     return {"error": "File terlalu besar. Maksimum ukuran file adalah 100 MB."}, 413
 
 
+@app.errorhandler(ValueError)
+def invalid_request(e):
+    return {"error": str(e)}, 400
+
+
 @app.errorhandler(500)
 def server_error(e):
-    return {"error": f"Terjadi kesalahan internal server: {str(e)}"}, 500
+    if app.config["DEBUG"]:
+        return {"error": f"Terjadi kesalahan internal server: {str(e)}"}, 500
+    return {"error": "Terjadi kesalahan internal server. Silakan coba lagi atau hubungi admin lokal."}, 500
 
 
 # Register blueprints
@@ -269,4 +376,4 @@ app.register_blueprint(spreadsheet_bp, url_prefix="/spreadsheet")
 app.register_blueprint(network_bp, url_prefix="/network")
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(host=app.config["HOST"], port=app.config["PORT"], debug=app.config["DEBUG"])

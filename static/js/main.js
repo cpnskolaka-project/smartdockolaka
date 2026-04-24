@@ -95,6 +95,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     updateThemeIcon(savedTheme);
+
+    initFavorites();
 });
 
 
@@ -243,45 +245,19 @@ function initToolForm() {
         selectedFiles.forEach(f => formData.append("files", f));
 
         try {
-            const resp = await fetch(endpoint, { method: "POST", body: formData });
+            // Check if endpoint supports SSE (ocr-pdf, pdf-to-images, compress)
+            const supportsSSE = ['ocr-pdf', 'pdf-to-images', 'compress'].some(ep => endpoint.includes(ep));
 
-            if (!resp.ok) {
-                let msg = t("error.processing_failed");
-                try {
-                    const json = await resp.json();
-                    msg = json.error || msg;
-                } catch (_) {}
-                showError(msg);
-                return;
-            }
-
-            const ct = resp.headers.get("Content-Type") || "";
-
-            if (ct.includes("application/json")) {
-                const json = await resp.json();
-                if (json.error) {
-                    showError(json.error);
-                } else if (json.text !== undefined) {
-                    showTextResult(json.text);
-                } else if (json.data !== undefined) {
-                    showTextResult(typeof json.data === "string" ? json.data : JSON.stringify(json.data, null, 2));
-                }
+            if (supportsSSE) {
+                await handleSSESubmission(endpoint, formData, btnText, btnLoad, submitBtn);
             } else {
-                // Binary file download
-                const blob = await resp.blob();
-                const cd = resp.headers.get("Content-Disposition") || "";
-                let filename = "download";
-                const match = cd.match(/filename="?([^";\n]+)"?/);
-                if (match) filename = match[1];
-
-                const url = URL.createObjectURL(blob);
-
-                // If image, show preview
-                if (ct.startsWith("image/")) {
-                    showFileResult(url, filename, true);
-                } else {
-                    showFileResult(url, filename, false);
-                }
+                await handleNormalSubmission(endpoint, formData, btnText, btnLoad, submitBtn);
+            }
+            
+            // Add to recent on success
+            const parts = endpoint.split('/').filter(p => p);
+            if (parts.length >= 2) {
+                addRecentTool(`${parts[parts.length-2]}.${parts[parts.length-1]}`);
             }
         } catch (err) {
             showError(t("error.network") + err.message);
@@ -289,8 +265,135 @@ function initToolForm() {
             if (btnText) btnText.style.display = "";
             if (btnLoad) btnLoad.style.display = "none";
             submitBtn.disabled = false;
+            document.getElementById("progress-area").style.display = "none";
         }
     });
+}
+
+async function handleNormalSubmission(endpoint, formData) {
+    const resp = await fetch(endpoint, { method: "POST", body: formData });
+
+    if (!resp.ok) {
+        let msg = t("error.processing_failed");
+        try {
+            const json = await resp.json();
+            msg = json.error || msg;
+        } catch (_) {}
+        showError(msg);
+        return;
+    }
+
+    const ct = resp.headers.get("Content-Type") || "";
+
+    if (ct.includes("application/json")) {
+        const json = await resp.json();
+        if (json.error) {
+            showError(json.error);
+        } else if (json.text !== undefined) {
+            showTextResult(json.text);
+        } else if (json.data !== undefined) {
+            showTextResult(typeof json.data === "string" ? json.data : JSON.stringify(json.data, null, 2));
+        }
+    } else {
+        // Binary file download
+        const blob = await resp.blob();
+        const cd = resp.headers.get("Content-Disposition") || "";
+        let filename = "download";
+        const match = cd.match(/filename="?([^";\n]+)"?/);
+        if (match) filename = match[1];
+
+        const url = URL.createObjectURL(blob);
+
+        // If image, show preview
+        if (ct.startsWith("image/")) {
+            showFileResult(url, filename, true);
+        } else {
+            showFileResult(url, filename, false);
+        }
+    }
+}
+
+async function handleSSESubmission(endpoint, formData) {
+    const progressArea = document.getElementById("progress-area");
+    const progressFill = document.getElementById("progress-fill");
+    const progressLabel = document.getElementById("progress-label");
+    const progressPercent = document.getElementById("progress-percent");
+
+    if (progressArea) progressArea.style.display = "block";
+    if (progressFill) progressFill.style.width = "0%";
+    if (progressLabel) progressLabel.textContent = "Menyiapkan...";
+    if (progressPercent) progressPercent.textContent = "0%";
+
+    const resp = await fetch(endpoint, {
+        method: "POST",
+        body: formData,
+        headers: { "Accept": "text/event-stream" }
+    });
+
+    if (!resp.ok) {
+        let msg = t("error.processing_failed");
+        try {
+            const json = await resp.json();
+            msg = json.error || msg;
+        } catch (_) {}
+        showError(msg);
+        return;
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop(); // Keep incomplete chunk in buffer
+
+        for (const line of lines) {
+            if (line.startsWith("data: ")) {
+                try {
+                    const data = JSON.parse(line.substring(6));
+                    
+                    if (data.error) {
+                        showError(data.error);
+                        return;
+                    }
+                    
+                    if (data.progress) {
+                        const pct = Math.round((data.page / data.total) * 100);
+                        if (progressFill) progressFill.style.width = pct + "%";
+                        if (progressLabel) progressLabel.textContent = `Memproses halaman ${data.page} dari ${data.total}`;
+                        if (progressPercent) progressPercent.textContent = pct + "%";
+                    }
+                    
+                    if (data.complete) {
+                        if (progressFill) progressFill.style.width = "100%";
+                        if (progressLabel) progressLabel.textContent = "Selesai!";
+                        if (progressPercent) progressPercent.textContent = "100%";
+                        
+                        if (data.text !== undefined) {
+                            showTextResult(data.text);
+                        } else if (data.data) {
+                            // Base64 file
+                            const binaryString = window.atob(data.data);
+                            const bytes = new Uint8Array(binaryString.length);
+                            for (let i = 0; i < binaryString.length; i++) {
+                                bytes[i] = binaryString.charCodeAt(i);
+                            }
+                            const blob = new Blob([bytes], { type: data.mime || "application/octet-stream" });
+                            const url = URL.createObjectURL(blob);
+                            showFileResult(url, data.filename || "download", (data.mime || "").startsWith("image/"));
+                        }
+                    }
+                } catch (e) {
+                    console.error("SSE parse error", e, line);
+                }
+            }
+        }
+    }
 }
 
 function showError(msg) {
@@ -376,4 +479,77 @@ function initDependentOptions() {
         parentInput.addEventListener("change", check);
         check();
     });
+}
+
+/* ── Favorites & Recent Tools ─────────────────── */
+function getFavorites() {
+    try {
+        return JSON.parse(localStorage.getItem('favorites')) || [];
+    } catch {
+        return [];
+    }
+}
+
+function setFavorites(favs) {
+    localStorage.setItem('favorites', JSON.stringify(favs));
+}
+
+function toggleFavorite(btn, toolId) {
+    // Prevent event bubbling if clicking star on a card
+    if (window.event) {
+        window.event.preventDefault();
+        window.event.stopPropagation();
+    }
+    
+    let favs = getFavorites();
+    const idx = favs.indexOf(toolId);
+    
+    if (idx === -1) {
+        favs.push(toolId);
+        btn.classList.add('active');
+    } else {
+        favs.splice(idx, 1);
+        btn.classList.remove('active');
+        
+        // If we are on favorites page, hide the card
+        if (window.location.pathname === '/favorites') {
+            const card = btn.closest('.tool-card');
+            if (card) {
+                card.style.display = 'none';
+            }
+        }
+    }
+    
+    setFavorites(favs);
+}
+
+function initFavorites() {
+    const favs = getFavorites();
+    document.querySelectorAll('.favorite-btn, .tool-card-favorite-btn').forEach(btn => {
+        const toolId = btn.dataset.tool;
+        if (favs.includes(toolId)) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+function getRecentTools() {
+    try {
+        return JSON.parse(localStorage.getItem('recent_tools')) || [];
+    } catch {
+        return [];
+    }
+}
+
+function addRecentTool(toolId) {
+    let recents = getRecentTools();
+    // Remove if already exists
+    recents = recents.filter(id => id !== toolId);
+    // Add to top
+    recents.unshift(toolId);
+    // Keep only last 15
+    if (recents.length > 15) {
+        recents = recents.slice(0, 15);
+    }
+    localStorage.setItem('recent_tools', JSON.stringify(recents));
 }
