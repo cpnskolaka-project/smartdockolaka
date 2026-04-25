@@ -1,73 +1,69 @@
-# PANDUAN INSTALASI APLIKASI SMARTDOC KOLAKA
+```markdown
+# Panduan Instalasi Aplikasi SmartDoc Kolaka
 **(Khusus Komputer / Laptop Windows)**
 
-Dokumen ini berisi panduan lengkap langkah demi langkah untuk menginstal dan menjalankan aplikasi **SmartDoc Kolaka** di komputer operasional KPP Pratama Kolaka secara lokal tanpa memerlukan akses internet (*Offline*).
+Panduan ini akan membantu Anda menginstal dan menjalankan aplikasi **SmartDoc Kolaka** di komputer operasional KPP Pratama Kolaka. Setelah terinstal, aplikasi ini dapat digunakan secara penuh tanpa memerlukan koneksi internet (*Offline*).
 
-Catatan tahap 1:
-- Aplikasi berjalan lokal pada `127.0.0.1` dan tidak membuka akses keluar secara default untuk aset antarmuka utama.
-- Riwayat aktivitas disimpan dalam mode privasi, sehingga nama file dan isi teks mentah tidak dicatat secara default.
-- Beberapa tool memiliki batas ukuran file, jumlah halaman PDF, DPI OCR, dan ukuran gambar agar aplikasi tetap stabil di komputer operasional.
-- Instalasi pertama membutuhkan koneksi internet untuk memasang dependency Python. Setelah selesai, aplikasi dapat digunakan secara offline.
+**Beberapa hal yang perlu diketahui:**
+- Aplikasi berjalan secara lokal di komputer (pada alamat `127.0.0.1`) dan tidak memerlukan akses internet untuk pemakaian sehari-hari.
+- Keamanan data terjamin: Riwayat aktivitas disimpan dalam mode privasi. Nama file dan isi teks di dalamnya tidak akan dicatat oleh sistem.
+- Agar kinerja komputer tetap ringan dan stabil, aplikasi ini membatasi ukuran file, jumlah halaman PDF, resolusi (DPI) OCR, dan ukuran gambar yang diproses.
+- **Penting:** Komputer harus tersambung ke internet *hanya* pada saat instalasi pertama untuk mengunduh komponen pendukung. Setelah selesai, aplikasi siap dipakai *offline*.
 
 ---
 
-## TAHAP 1: Instalasi Mesin Python (Wajib)
-Aplikasi ini diotaki oleh mesin *Python*. Jika komputer Anda belum pernah dipasangi *Python*, ikuti langkah hening (*Silent Install*) berikut agar terpasang mulus di seluruh sistem:
+## Tahap 1: Menginstal Python (Wajib)
+Aplikasi ini membutuhkan bahasa pemrograman Python untuk bisa berjalan. Jika komputer belum pernah dipasangi Python, ikuti langkah instalasi otomatis (*Silent Install*) berikut:
 
-1. Buka folder instalasi yang memuat kaset digital (berkas instalator Windows installer) bernama `python-3.12.10-amd64.exe`.
-2. Jangan melakukan *Double Click / Klik Ganda*! Arahkan krusor Anda ke bilah alamat folder di bagian atas, ketik **`cmd`** lalu tekan `[ENTER]`. Jendela Terminal Hitam akan terbuka.
-3. Salin dan tempelkan mantera perintah gaib berikut ini ke dalam terminal hitam tersebut, lalu tekan `[ENTER]`:
+1. Buka folder instalasi yang berisi file *installer* bernama `python-3.12.10-amd64.exe`.
+2. **Jangan diklik ganda (*Double Click*)!** Arahkan kursor ke kolom alamat folder (*address bar*) di bagian atas, ketik **`cmd`**, lalu tekan `[ENTER]`. Jendela Terminal hitam (Command Prompt) akan terbuka.
+3. *Copy* dan *paste* perintah di bawah ini ke dalam jendela hitam tersebut, lalu tekan `[ENTER]`:
    ```bash
    python-3.12.10-amd64.exe /quiet InstallAllUsers=1 PrependPath=1
    ```
-   *(Penjelasan: Perintah ini menginstruksikan komputer untuk menginstal Python secara senyap tanpa repot menekan 'Next', berlaku untuk semua User PC, dan memasukkannya otomatis ke dalam Path Global).*
+   *(Catatan: Perintah ini akan menginstal Python di latar belakang tanpa harus repot menekan 'Next', berlaku untuk semua pengguna di PC tersebut, dan otomatis mendaftarkannya ke sistem).*
 
-## TAHAP 2: Verifikasi Instalasi Mesin
-Setelah proses instalasi senyap selesai (biasanya tidak ada notifikasi, hanya diam sejenak sekitar 1-2 menit):
+## Tahap 2: Cek Hasil Instalasi Python
+Setelah menjalankan perintah di atas, tunggu sekitar 1-2 menit (memang tidak akan ada notifikasi apa-apa di layar). Setelah itu:
 
-1. Tetap berada di dalam jendela terminal hitam tadi *(atau buka CMD baru)*.
-2. Ketik perintah berikut dan tekan `[ENTER]`:
+1. Di jendela Terminal hitam yang sama *(atau jika sudah tertutup, buka CMD baru)*, ketik perintah ini dan tekan `[ENTER]`:
    ```bash
    python --version
    ```
-3. Jika pada layar muncul tulisan seperti `Python 3.12.10`, **Selamat!** Mesin berhasil ditanamkan ke dalam PC Anda. Anda boleh menutup terminal hitam tersebut.
+2. Jika muncul tulisan `Python 3.12.10`, instalasi berhasil. Silakan tutup jendela Terminal hitam tersebut.
 
-## TAHAP 3: Menyalakan Mesin Aplikasi SmartDoc
-Kini mesin telah siap, saatnya membangkitkan aplikasi utama!
+## Tahap 3: Menjalankan Aplikasi SmartDoc
+Setelah Python terinstal, saatnya menjalankan aplikasinya!
 
-1. Cari berkas pemicu berlogo gir gigi roda bernama **`run_windows.bat`** *(atau bernama "run_windows" jenis Windows Batch File)* yang terdapat di dalam tumpukan berkas sumber ini.
-2. Klik Ganda *(Double Click)* pada berkas tersebut. Untuk instalasi PC baru, **cukup jalankan file ini saja**.
-3. Skrip akan otomatis:
-   - membuat lingkungan virtual Python jika belum ada
-   - memasang seluruh dependency Python dari internet pada instalasi pertama
-   - menawarkan pemasangan autostart Windows pada pemakaian pertama
-   - membuka aplikasi lokal di browser
-4. Jangan menekan tanda silang merah `[X]` pada terminal ini saat aplikasi sedang dipakai. Jika ditutup, maka *Web Server* akan berhenti.
-5. Anda bisa langsung menikmati aplikasi di peramban internet (*Browser* Chrome/Edge) melalui alamat: **`http://127.0.0.1:5050`**
+1. Cari file bernama **`run_windows.bat`** (biasanya berlogo ikon gir/gear atau bertipe *Windows Batch File*) di dalam folder aplikasi ini.
+2. **Klik Ganda (*Double Click*)** pada file tersebut. Untuk PC baru, cukup gunakan file ini untuk semua keperluan.
+3. Sistem akan memproses secara otomatis, meliputi:
+   - Membuat ruang khusus aplikasi (*virtual environment*).
+   - Mengunduh dan menginstal komponen dari internet (hanya pada instalasi pertama).
+   - Menawarkan opsi *autostart* (agar aplikasi jalan otomatis saat PC dinyalakan).
+   - Membuka aplikasi secara otomatis di browser Anda.
+4. **Perhatian:** Jangan menutup jendela Terminal hitam yang muncul selama aplikasi digunakan. Jika jendela itu ditutup (klik tanda silang [X]), maka aplikasi akan ikut berhenti.
+5. Anda bisa langsung menggunakan aplikasi melalui browser (Chrome/Edge) dengan membuka alamat: **`http://127.0.0.1:5050`**
 
-### Mode Perbaikan Cepat dari Launcher
+### Menu Pilihan saat Menjalankan Aplikasi
 
-Saat menjalankan **`run_windows.bat`**, Anda akan melihat menu singkat:
+Saat Anda mengklik `run_windows.bat`, Anda akan disuguhkan beberapa menu:
 
-1. **Jalankan aplikasi**  
-   Digunakan untuk pemakaian harian biasa.
-2. **Install dependency sekarang**  
-   Memaksa pengecekan dan pemasangan paket. Gunakan saat komputer terhubung internet.
-3. **Reinstall dependency**  
-   Memasang ulang seluruh dependency tanpa menghapus `venv`. Membutuhkan internet.
-4. **Repair instalasi**  
-   Menghapus `venv`, membuat ulang lingkungan virtual, lalu memasang ulang paket dari internet.
-5. **Atur ulang autostart**  
-   Menampilkan ulang pertanyaan aktivasi autostart.
+1. **Jalankan aplikasi:** Pilih opsi ini untuk pemakaian sehari-hari.
+2. **Install dependency sekarang:** Mengecek dan menginstal komponen yang kurang (membutuhkan internet).
+3. **Reinstall dependency:** Menginstal ulang seluruh komponen pendukung (membutuhkan internet).
+4. **Repair instalasi:** Opsi perbaikan jika aplikasi mendadak *error*. Sistem akan mereset ulang pengaturan aplikasi dari awal (membutuhkan internet).
+5. **Atur ulang autostart:** Memunculkan kembali opsi pengaturan untuk menyalakan aplikasi secara otomatis.
 
-Gunakan **Repair instalasi** jika aplikasi gagal berjalan di PC tertentu tetapi berkas project masih lengkap.
+*(Tips: Gunakan opsi **Repair instalasi** jika aplikasi tiba-tiba gagal berjalan di PC tertentu, asalkan file di dalam foldernya masih utuh).*
 
-## TAHAP 4: Menata Menjadi Autostart (Berjalan Otomatis Saat PC Dinyalakan)
-Jika Anda menggunakan PC stasioner / pelayanan terpadu yang sering dimatikan *(Shutdown)* pada jam pulang, lebih baik aplikasi ini menyala sendiri secara otomatis ketika satpam atau pegawai menyalakan PC keesokan paginya.
+## Tahap 4: Mengatur Autostart (Aplikasi Jalan Otomatis)
+Jika aplikasi ini diinstal pada komputer di area pelayanan terpadu yang rutin dimatikan setiap jam pulang, sangat disarankan untuk mengaktifkan fitur *Autostart*. Dengan begitu, saat komputer dinyalakan keesokan paginya, aplikasi sudah otomatis siap digunakan.
 
-1. Saat pertama kali menjalankan **`run_windows.bat`**, jawab `Y` jika ingin autostart aktif.
-2. Skrip akan otomatis membuat shortcut pada folder `Startup` Windows untuk user yang sedang login.
-3. Jika sebelumnya menjawab `N`, autostart masih bisa diaktifkan ulang dengan menghapus berkas `.autostart_windows` lalu menjalankan **`run_windows.bat`** lagi.
+1. Saat pertama kali menjalankan **`run_windows.bat`**, ketik `Y` saat ditanya apakah ingin mengaktifkan *autostart*.
+2. Sistem akan otomatis membuat *shortcut* agar aplikasi langsung berjalan saat Windows mulai menyala.
+3. Jika pada awalnya Anda memilih `N` (Tidak), fitur ini masih bisa diaktifkan kapan saja. Caranya: hapus file bernama `.autostart_windows` yang ada di dalam folder, lalu jalankan lagi file **`run_windows.bat`**.
 
 ---
-*Dibuat khusus untuk optimalisasi alat tempur di Lingkungan Direktorat Jenderal Pajak RI.*
+*Dibuat khusus untuk optimalisasi alat kerja di Lingkungan Direktorat Jenderal Pajak RI.*
+```
