@@ -339,7 +339,7 @@ def after_request_logger(response):
 
 @app.errorhandler(413)
 def too_large(e):
-    return {"error": "File terlalu besar. Maksimum ukuran file adalah 100 MB."}, 413
+    return {"error": "File terlalu besar. Maksimum ukuran file adalah 250 MB."}, 413
 
 
 @app.errorhandler(ValueError)

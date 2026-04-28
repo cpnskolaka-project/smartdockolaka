@@ -11,8 +11,8 @@ class Config:
     TEMPLATES_AUTO_RELOAD = True
 
     # Upload and processing limits
-    MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # 100 MB
-    MAX_UPLOAD_FILES = 20
+    MAX_CONTENT_LENGTH = 250 * 1024 * 1024  # 250 MB
+    MAX_UPLOAD_FILES = 50
     MAX_PDF_PAGES = 250
     MAX_OCR_PDF_PAGES = 75
     MAX_IMAGE_PIXELS = 40_000_000
