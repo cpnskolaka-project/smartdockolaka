@@ -32,10 +32,18 @@
     <p data-i18n-text="fav.recent_empty">Belum ada riwayat penggunaan tool di perangkat ini.</p>
 </div>
 
+<script id="categories-data" type="application/json">
+{{ tool_categories | tojson | safe }}
+</script>
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     // Build tool mapping from server-injected JSON (avoids Jinja for-loop issues in script blocks)
-    var rawCategories = {{ tool_categories | tojson }};
+    var rawCategories = [];
+    try {
+        rawCategories = JSON.parse(document.getElementById('categories-data').textContent);
+    } catch (e) {
+        console.error("Failed to parse categories data", e);
+    }
     var toolsMap = {};
     rawCategories.forEach(function(cat) {
         cat.tools.forEach(function(tool) {

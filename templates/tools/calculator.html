@@ -54,25 +54,97 @@
 
 {% block scripts %}
 <script>
-let expression = "";
-let currentNum = "0";
+// Raw values for calculation (uses "." as decimal separator internally)
+let expression = "";    // e.g. "12345 + 678 * "
+let currentNum = "0";   // e.g. "12345.67"
 let lastResult = null;
 
+/**
+ * Format a raw number string for display with Indonesian locale:
+ * - Dot (.) as thousands separator
+ * - Comma (,) as decimal separator
+ * e.g. "12345.67" → "12.345,67", "-50000" → "-50.000"
+ */
+function formatDisplayNum(raw) {
+    if (raw === "Error" || raw === "" || raw === "-") return raw;
+
+    // Handle negative
+    let negative = false;
+    let str = raw;
+    if (str.startsWith("-")) {
+        negative = true;
+        str = str.substring(1);
+    }
+
+    // Split integer and decimal parts
+    let parts = str.split(".");
+    let intPart = parts[0] || "0";
+    let decPart = parts.length > 1 ? parts[1] : null;
+
+    // Add thousands separators to integer part
+    intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+    let result = (negative ? "-" : "") + intPart;
+    if (decPart !== null) {
+        result += "," + decPart;
+    }
+    return result;
+}
+
+/**
+ * Format the expression string for display.
+ * Converts raw numbers in the expression to formatted display,
+ * and uses proper math symbols.
+ */
+function formatExpression(expr) {
+    if (!expr) return "\u00a0";
+
+    // Map operators to display symbols
+    const opMap = { "/": " ÷ ", "*": " × ", "-": " − ", "+": " + ", "%": " % " };
+
+    // Split expression into tokens (numbers and operators)
+    // Expression format: "123 + 456 * 789 = " or "123 + 456 * "
+    let tokens = expr.split(" ");
+    return tokens.map(token => {
+        if (token === "=") return "=";
+        if (["+", "-", "*", "/", "%"].includes(token)) return opMap[token] || token;
+        // It's a number — format it
+        if (token !== "" && !isNaN(parseFloat(token))) {
+            return formatDisplayNum(token);
+        }
+        return token;
+    }).join("");
+}
+
 function updateDisplay() {
-    document.getElementById("calc-expr").textContent = expression || "\u00a0";
-    document.getElementById("calc-result").textContent = currentNum;
+    document.getElementById("calc-expr").innerHTML = formatExpression(expression) || "\u00a0";
+    document.getElementById("calc-result").textContent = formatDisplayNum(currentNum);
 }
 
 function appendNum(n) {
     if (lastResult !== null) { expression = ""; lastResult = null; }
-    if (currentNum === "0" && n !== ".") currentNum = n;
-    else currentNum += n;
+
+    if (n === ".") {
+        // Prevent multiple decimal points
+        if (currentNum.includes(".")) return;
+        currentNum += ".";
+    } else if (currentNum === "0") {
+        currentNum = n;
+    } else {
+        currentNum += n;
+    }
     updateDisplay();
 }
 
 function appendOp(op) {
-    if (lastResult !== null) { expression = currentNum + " " + op + " "; currentNum = "0"; lastResult = null; }
-    else { expression += currentNum + " " + op + " "; currentNum = "0"; }
+    if (lastResult !== null) {
+        expression = currentNum + " " + op + " ";
+        currentNum = "0";
+        lastResult = null;
+    } else {
+        expression += currentNum + " " + op + " ";
+        currentNum = "0";
+    }
     updateDisplay();
 }
 
@@ -99,8 +171,11 @@ function clearCalc() {
 }
 
 function backspace() {
+    if (currentNum === "Error") { currentNum = "0"; updateDisplay(); return; }
     if (currentNum.length > 1) currentNum = currentNum.slice(0, -1);
     else currentNum = "0";
+    // Clean up trailing dot: if user deletes the digit after ".", remove the dot too
+    if (currentNum.endsWith(".")) currentNum = currentNum.slice(0, -1) || "0";
     updateDisplay();
 }
 
@@ -121,6 +196,9 @@ function sciOp(op) {
 }
 
 document.addEventListener("keydown", e => {
+    // Skip if user is focused on search or other input
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) return;
+
     if (e.key >= "0" && e.key <= "9" || e.key === ".") appendNum(e.key);
     else if (["+", "-", "*", "/", "%"].includes(e.key)) appendOp(e.key);
     else if (e.key === "Enter" || e.key === "=") calculate();

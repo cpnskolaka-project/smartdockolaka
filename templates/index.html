@@ -7,6 +7,22 @@
     <p class="hero-subtitle" data-i18n-text="home.subtitle">Sistem Utilitas Digital — KPP Pratama Kolaka</p>
 </div>
 
+<!-- Search Tools -->
+<div class="search-tools-wrapper" id="search-tools-wrapper">
+    <div class="search-tools-box">
+        <i class="bi bi-search search-icon"></i>
+        <input type="text" id="search-tools-input" class="search-tools-input"
+            data-i18n-placeholder="search.placeholder"
+            placeholder="Cari alat... (contoh: merge, compress, OCR)"
+            autocomplete="off" spellcheck="false">
+        <kbd class="search-kbd" id="search-kbd">/</kbd>
+        <button type="button" class="search-clear-btn" id="search-clear-btn" style="display:none" aria-label="Clear search">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <div class="search-results-dropdown" id="search-results-dropdown" style="display:none"></div>
+</div>
+
 <!-- Quick Access section (populated by JS if there are favorites/recents) -->
 <div id="quick-access-section" class="quick-access-section" style="display: none;">
     <div class="category-title" style="margin-bottom: 1rem; color: var(--accent);">
@@ -39,22 +55,32 @@
 </div>
 {% endfor %}
 
+<script id="categories-data" type="application/json">
+{{ tool_categories | tojson | safe }}
+</script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     // Generate mapping from categories to easy access format
     const toolsMap = {};
-    {% for cat in tool_categories %}
-        {% for tool in cat.tools %}
-            toolsMap["{{ cat.id }}.{{ tool.id }}"] = {
-                id: "{{ tool.id }}",
-                catId: "{{ cat.id }}",
-                title: "{{ tool.name }}",
-                desc: "{{ tool.desc }}",
-                icon: "bi {{ tool.icon }}",
-                url: "/{{ cat.id }}/{{ tool.id }}"
-            };
-        {% endfor %}
-    {% endfor %}
+    try {
+        const toolCategories = JSON.parse(document.getElementById('categories-data').textContent);
+        toolCategories.forEach(cat => {
+            if (cat.tools) {
+                cat.tools.forEach(tool => {
+                    toolsMap[`${cat.id}.${tool.id}`] = {
+                        id: tool.id,
+                        catId: cat.id,
+                        title: tool.name,
+                        desc: tool.desc,
+                        icon: `bi ${tool.icon}`,
+                        url: `/${cat.id}/${tool.id}`
+                    };
+                });
+            }
+        });
+    } catch (e) {
+        console.error("Failed to parse categories data", e);
+    }
 
     function loadQuickAccess() {
         const favs = getFavorites();
@@ -86,6 +112,185 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     
     loadQuickAccess();
+
+    // ── Search Tools ─────────────────────────────
+    const searchInput = document.getElementById("search-tools-input");
+    const searchDropdown = document.getElementById("search-results-dropdown");
+    const searchClearBtn = document.getElementById("search-clear-btn");
+    const searchKbd = document.getElementById("search-kbd");
+    let activeDropdownIdx = -1;
+
+    // Build a flat searchable list from toolsMap
+    const allTools = Object.values(toolsMap);
+
+    function searchTools(query) {
+        if (!query) return allTools;
+        const q = query.toLowerCase().trim();
+        if (!q) return allTools;
+
+        return allTools.filter(tool => {
+            // Search in both languages
+            const enName = (TRANSLATIONS?.en?.["tool." + tool.catId + "." + tool.id] || tool.title).toLowerCase();
+            const idName = (TRANSLATIONS?.id?.["tool." + tool.catId + "." + tool.id] || "").toLowerCase();
+            const enDesc = (TRANSLATIONS?.en?.["desc." + tool.catId + "." + tool.id] || tool.desc).toLowerCase();
+            const idDesc = (TRANSLATIONS?.id?.["desc." + tool.catId + "." + tool.id] || "").toLowerCase();
+            const catEn = (TRANSLATIONS?.en?.["cat." + tool.catId] || "").toLowerCase();
+            const catId = (TRANSLATIONS?.id?.["cat." + tool.catId] || "").toLowerCase();
+
+            return enName.includes(q) || idName.includes(q) ||
+                   enDesc.includes(q) || idDesc.includes(q) ||
+                   catEn.includes(q) || catId.includes(q) ||
+                   tool.id.includes(q);
+        });
+    }
+
+    function renderDropdown(results, query) {
+        if (!query || !query.trim()) {
+            searchDropdown.style.display = "none";
+            return;
+        }
+
+        if (results.length === 0) {
+            const noResultMsg = currentLang === "id" ? "Tidak ada alat yang cocok" : "No tools found";
+            searchDropdown.innerHTML = `<div class="search-no-result"><i class="bi bi-emoji-frown"></i> ${noResultMsg}</div>`;
+            searchDropdown.style.display = "block";
+            activeDropdownIdx = -1;
+            return;
+        }
+
+        const limited = results.slice(0, 8);
+        searchDropdown.innerHTML = limited.map((tool, i) => {
+            const name = t("tool." + tool.catId + "." + tool.id) || tool.title;
+            const desc = t("desc." + tool.catId + "." + tool.id) || tool.desc;
+            const cat = t("cat." + tool.catId) || tool.catId;
+            return `<a href="${tool.url}" class="search-result-item${i === activeDropdownIdx ? ' active' : ''}" data-idx="${i}">
+                <div class="search-result-icon"><i class="${tool.icon}"></i></div>
+                <div class="search-result-info">
+                    <span class="search-result-name">${name}</span>
+                    <span class="search-result-desc">${desc}</span>
+                </div>
+                <span class="search-result-cat">${cat}</span>
+            </a>`;
+        }).join("");
+
+        if (results.length > 8) {
+            const moreMsg = currentLang === "id" ? `+${results.length - 8} lainnya` : `+${results.length - 8} more`;
+            searchDropdown.innerHTML += `<div class="search-more-hint">${moreMsg}</div>`;
+        }
+
+        searchDropdown.style.display = "block";
+    }
+
+    function filterCategorySections(query) {
+        const categorySections = document.querySelectorAll(".category-section");
+        const quickAccess = document.getElementById("quick-access-section");
+
+        if (!query || !query.trim()) {
+            // Show all
+            categorySections.forEach(sec => {
+                sec.style.display = "";
+                sec.querySelectorAll(".tool-card").forEach(card => {
+                    card.style.display = "";
+                    card.style.opacity = "";
+                    card.style.transform = "";
+                });
+            });
+            if (quickAccess) quickAccess.style.display = quickAccess.querySelector(".qa-card") ? "block" : "none";
+            return;
+        }
+
+        // Hide quick access during search
+        if (quickAccess) quickAccess.style.display = "none";
+
+        const results = searchTools(query);
+        const matchUrls = new Set(results.map(t => t.url));
+
+        categorySections.forEach(sec => {
+            const cards = sec.querySelectorAll(".tool-card");
+            let anyVisible = false;
+            cards.forEach(card => {
+                const href = card.getAttribute("href");
+                if (matchUrls.has(href)) {
+                    card.style.display = "";
+                    card.style.opacity = "1";
+                    card.style.transform = "translateY(0)";
+                    anyVisible = true;
+                } else {
+                    card.style.display = "none";
+                }
+            });
+            sec.style.display = anyVisible ? "" : "none";
+        });
+    }
+
+    searchInput.addEventListener("input", () => {
+        const q = searchInput.value;
+        const results = searchTools(q);
+
+        searchClearBtn.style.display = q ? "flex" : "none";
+        searchKbd.style.display = q ? "none" : "";
+
+        renderDropdown(results, q);
+        filterCategorySections(q);
+        activeDropdownIdx = -1;
+    });
+
+    searchInput.addEventListener("keydown", (e) => {
+        const items = searchDropdown.querySelectorAll(".search-result-item");
+        if (!items.length) return;
+
+        if (e.key === "ArrowDown") {
+            e.preventDefault();
+            activeDropdownIdx = Math.min(activeDropdownIdx + 1, items.length - 1);
+            items.forEach((it, i) => it.classList.toggle("active", i === activeDropdownIdx));
+            items[activeDropdownIdx]?.scrollIntoView({ block: "nearest" });
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            activeDropdownIdx = Math.max(activeDropdownIdx - 1, 0);
+            items.forEach((it, i) => it.classList.toggle("active", i === activeDropdownIdx));
+            items[activeDropdownIdx]?.scrollIntoView({ block: "nearest" });
+        } else if (e.key === "Enter" && activeDropdownIdx >= 0) {
+            e.preventDefault();
+            items[activeDropdownIdx]?.click();
+        } else if (e.key === "Escape") {
+            searchInput.blur();
+            searchDropdown.style.display = "none";
+        }
+    });
+
+    searchClearBtn.addEventListener("click", () => {
+        searchInput.value = "";
+        searchClearBtn.style.display = "none";
+        searchKbd.style.display = "";
+        searchDropdown.style.display = "none";
+        filterCategorySections("");
+        searchInput.focus();
+        activeDropdownIdx = -1;
+    });
+
+    // Close dropdown on click outside
+    document.addEventListener("click", (e) => {
+        if (!e.target.closest("#search-tools-wrapper")) {
+            searchDropdown.style.display = "none";
+        }
+    });
+
+    // Re-open dropdown on focus if there's a query
+    searchInput.addEventListener("focus", () => {
+        if (searchInput.value.trim()) {
+            const results = searchTools(searchInput.value);
+            renderDropdown(results, searchInput.value);
+        }
+    });
+
+    // '/' keyboard shortcut to focus search
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)) {
+            e.preventDefault();
+            searchInput.focus();
+            searchInput.select();
+        }
+    });
 });
 </script>
 {% endblock %}

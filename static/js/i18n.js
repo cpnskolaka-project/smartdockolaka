@@ -184,7 +184,9 @@ const TRANSLATIONS = {
         "error.no_file": "Please select a file first.",
         "error.no_text": "Please enter some text.",
         "error.processing_failed": "Processing failed.",
-        "error.network": "Network error: "
+        "error.network": "Network error: ",
+        
+        "search.placeholder": "Search tools... (e.g. merge, compress, OCR)"
     },
     id: {
         "nav.history": "Riwayat Log",
@@ -371,7 +373,9 @@ const TRANSLATIONS = {
         "error.no_file": "Silakan pilih file terlebih dahulu.",
         "error.no_text": "Silakan masukkan teks.",
         "error.processing_failed": "Pemrosesan gagal.",
-        "error.network": "Kesalahan jaringan: "
+        "error.network": "Kesalahan jaringan: ",
+        
+        "search.placeholder": "Cari alat... (contoh: gabung, kompres, OCR)"
     }
 };
 
