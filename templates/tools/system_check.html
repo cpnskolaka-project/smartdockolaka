@@ -11,32 +11,32 @@
 
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem; margin-bottom: 1.4rem;">
         <div class="card" style="padding: 1rem;">
-            <div style="font-size: .8rem; color: var(--text-muted);">Python</div>
+            <div style="font-size: .8rem; color: var(--text-muted);" data-i18n-text="sys.python">Python</div>
             <div style="font-size: 1.2rem; font-weight: 700;">{{ stats.python_version }}</div>
         </div>
         <div class="card" style="padding: 1rem;">
-            <div style="font-size: .8rem; color: var(--text-muted);">Platform</div>
+            <div style="font-size: .8rem; color: var(--text-muted);" data-i18n-text="sys.platform">Platform</div>
             <div style="font-size: 1rem; font-weight: 700;">{{ stats.platform }}</div>
         </div>
         <div class="card" style="padding: 1rem;">
-            <div style="font-size: .8rem; color: var(--text-muted);">Host Lokal</div>
+            <div style="font-size: .8rem; color: var(--text-muted);" data-i18n-text="sys.local_host">Host Lokal</div>
             <div style="font-size: 1rem; font-weight: 700;">{{ stats.host }}:{{ stats.port }}</div>
         </div>
         <div class="card" style="padding: 1rem;">
-            <div style="font-size: .8rem; color: var(--text-muted);">Mode Privasi</div>
-            <div style="font-size: 1rem; font-weight: 700; color: {{ '#16a34a' if stats.privacy_mode else '#d97706' }};">
+            <div style="font-size: .8rem; color: var(--text-muted);" data-i18n-text="sys.privacy_mode">Mode Privasi</div>
+            <div style="font-size: 1rem; font-weight: 700; color: {{ '#16a34a' if stats.privacy_mode else '#d97706' }};" data-i18n-text="{{ 'sys.active' if stats.privacy_mode else 'sys.inactive' }}">
                 {{ "Aktif" if stats.privacy_mode else "Nonaktif" }}
             </div>
         </div>
         <div class="card" style="padding: 1rem;">
-            <div style="font-size: .8rem; color: var(--text-muted);">Autostart</div>
-            <div style="font-size: 1rem; font-weight: 700; color: {{ '#16a34a' if stats.autostart_enabled else '#d97706' }};">
+            <div style="font-size: .8rem; color: var(--text-muted);" data-i18n-text="sys.autostart">Autostart</div>
+            <div style="font-size: 1rem; font-weight: 700; color: {{ '#16a34a' if stats.autostart_enabled else '#d97706' }};" data-i18n-text="{{ 'sys.installed' if stats.autostart_enabled else 'sys.not_installed' }}">
                 {{ "Terpasang" if stats.autostart_enabled else "Belum" }}
             </div>
         </div>
         <div class="card" style="padding: 1rem;">
-            <div style="font-size: .8rem; color: var(--text-muted);">Instalasi Awal</div>
-            <div style="font-size: 1rem; font-weight: 700; color: {{ '#16a34a' if stats.initial_install_ready else '#d97706' }};">
+            <div style="font-size: .8rem; color: var(--text-muted);" data-i18n-text="sys.initial_install">Instalasi Awal</div>
+            <div style="font-size: 1rem; font-weight: 700; color: {{ '#16a34a' if stats.initial_install_ready else '#d97706' }};" data-i18n-text="{{ 'sys.ready_offline' if stats.initial_install_ready else 'sys.online_install_needed' }}">
                 {{ "Siap Offline" if stats.initial_install_ready else "Perlu Install Online" }}
             </div>
         </div>
@@ -44,7 +44,7 @@
 
     <div style="display:grid; grid-template-columns: 1.1fr .9fr; gap: 1rem;">
         <div class="card" style="padding: 1.2rem;">
-            <div class="pane-header" style="margin:-1.2rem -1.2rem 1rem -1.2rem;">Dependency Python</div>
+            <div class="pane-header" style="margin:-1.2rem -1.2rem 1rem -1.2rem;" data-i18n-text="sys.py_deps">Dependency Python</div>
             <div style="display:grid; gap:.65rem;">
                 {% for item in module_checks %}
                 <div class="calc-section" style="padding:.85rem 1rem;">
@@ -52,15 +52,15 @@
                         <div>
                             <div style="font-weight:700;">{{ item.name }}</div>
                             <div style="font-size:.8rem; color: var(--text-muted);">
-                                {{ "Wajib" if item.required else "Opsional" }}
+                                <span data-i18n-text="{{ 'sys.required' if item.required else 'sys.optional' }}">{{ "Wajib" if item.required else "Opsional" }}</span>
                                 {% if item.installed_version %}
-                                • terpasang {{ item.installed_version }}
+                                • <span data-i18n-text="sys.installed_v">terpasang</span> {{ item.installed_version }}
                                 {% else %}
-                                • belum terpasang
+                                • <span data-i18n-text="sys.not_installed_v">belum terpasang</span>
                                 {% endif %}
                             </div>
                         </div>
-                        <div style="font-weight:700; color: {{ '#16a34a' if item.installed else ('#dc2626' if item.required else '#d97706') }};">
+                        <div style="font-weight:700; color: {{ '#16a34a' if item.installed else ('#dc2626' if item.required else '#d97706') }};" data-i18n-text="{{ 'sys.ok' if item.installed else ('sys.missing' if item.required else 'sys.optional') }}">
                             {% if item.installed %}
                                 OK
                             {% elif item.required %}
@@ -77,23 +77,23 @@
 
         <div style="display:grid; gap: 1rem;">
             <div class="card" style="padding: 1.2rem;">
-                <div class="pane-header" style="margin:-1.2rem -1.2rem 1rem -1.2rem;">Status Instalasi</div>
+                <div class="pane-header" style="margin:-1.2rem -1.2rem 1rem -1.2rem;" data-i18n-text="sys.install_status">Status Instalasi</div>
                 <div style="display:grid; gap:.8rem; font-size:.9rem;">
                     <div>
-                        <div style="font-weight:700;">Virtual environment</div>
-                        <div style="color: {{ '#16a34a' if stats.venv_exists else '#dc2626' }};">
+                        <div style="font-weight:700;" data-i18n-text="sys.venv">Virtual environment</div>
+                        <div style="color: {{ '#16a34a' if stats.venv_exists else '#dc2626' }};" data-i18n-text="{{ 'sys.exists' if stats.venv_exists else 'sys.not_exists' }}">
                             {{ "Sudah ada" if stats.venv_exists else "Belum ada" }}
                         </div>
                     </div>
                     <div>
-                        <div style="font-weight:700;">Marker dependency</div>
-                        <div style="color: {{ '#16a34a' if stats.requirements_marker_exists else '#d97706' }};">
+                        <div style="font-weight:700;" data-i18n-text="sys.dep_marker">Marker dependency</div>
+                        <div style="color: {{ '#16a34a' if stats.requirements_marker_exists else '#d97706' }};" data-i18n-text="{{ 'sys.detected' if stats.requirements_marker_exists else 'sys.not_created' }}">
                             {{ "Terdeteksi" if stats.requirements_marker_exists else "Belum terbentuk" }}
                         </div>
                     </div>
                     <div>
-                        <div style="font-weight:700;">Catatan mode kerja</div>
-                        <div style="color: var(--text-muted);">
+                        <div style="font-weight:700;" data-i18n-text="sys.work_mode">Catatan mode kerja</div>
+                        <div style="color: var(--text-muted);" data-i18n-text="sys.work_mode_desc">
                             Instalasi pertama membutuhkan internet untuk mengambil dependency Python. Setelah dependency wajib terpasang dan statusnya hijau, aplikasi dapat dipakai offline untuk penggunaan harian.
                         </div>
                     </div>
@@ -101,16 +101,20 @@
             </div>
 
             <div class="card" style="padding: 1.2rem;">
-                <div class="pane-header" style="margin:-1.2rem -1.2rem 1rem -1.2rem;">Binary Lokal</div>
+                <div class="pane-header" style="margin:-1.2rem -1.2rem 1rem -1.2rem;" data-i18n-text="sys.local_bin">Binary Lokal</div>
                 <div style="display:grid; gap:.65rem;">
                     {% for item in binaries %}
                     <div class="calc-section" style="padding:.9rem 1rem;">
                         <div style="display:flex; justify-content:space-between; gap:1rem; align-items:flex-start;">
                             <div>
                                 <div style="font-weight:700;">{{ item.name }}</div>
-                                <div style="font-size:.8rem; color: var(--text-muted); word-break: break-word;">{{ item.path or "Tidak ditemukan di PATH" }}</div>
+                                {% if item.path %}
+                                <div style="font-size:.8rem; color: var(--text-muted); word-break: break-word;">{{ item.path }}</div>
+                                {% else %}
+                                <div style="font-size:.8rem; color: var(--text-muted); word-break: break-word;" data-i18n-text="sys.not_in_path">Tidak ditemukan di PATH</div>
+                                {% endif %}
                             </div>
-                            <div style="font-weight:700; color: {{ '#16a34a' if item.path else '#d97706' }};">{{ "OK" if item.path else "Cek" }}</div>
+                            <div style="font-weight:700; color: {{ '#16a34a' if item.path else '#d97706' }};" data-i18n-text="{{ 'sys.ok' if item.path else 'sys.check' }}">{{ "OK" if item.path else "Cek" }}</div>
                         </div>
                     </div>
                     {% endfor %}
@@ -118,19 +122,19 @@
             </div>
 
             <div class="card" style="padding: 1.2rem;">
-                <div class="pane-header" style="margin:-1.2rem -1.2rem 1rem -1.2rem;">Autostart & Data</div>
+                <div class="pane-header" style="margin:-1.2rem -1.2rem 1rem -1.2rem;" data-i18n-text="sys.autostart_data">Autostart & Data</div>
                 <div style="display:grid; gap:.8rem; font-size:.9rem;">
                     <div>
-                        <div style="font-weight:700;">Lokasi autostart</div>
+                        <div style="font-weight:700;" data-i18n-text="sys.autostart_loc">Lokasi autostart</div>
                         <div style="color: var(--text-muted); word-break: break-word;">{{ stats.autostart_path }}</div>
                     </div>
                     <div>
-                        <div style="font-weight:700;">Database riwayat</div>
+                        <div style="font-weight:700;" data-i18n-text="sys.history_db">Database riwayat</div>
                         <div style="color: {{ '#16a34a' if db_ok else ('var(--text-muted)' if not stats.history_db_exists else '#dc2626') }};">
                             {% if stats.history_db_exists %}
-                                {{ "Siap" if db_ok else "Perlu dicek" }}{% if stats.history_db_size_kb %} • {{ stats.history_db_size_kb }} KB{% endif %}
+                                <span data-i18n-text="{{ 'sys.ready' if db_ok else 'sys.needs_check' }}">{{ "Siap" if db_ok else "Perlu dicek" }}</span>{% if stats.history_db_size_kb %} • {{ stats.history_db_size_kb }} KB{% endif %}
                             {% else %}
-                                Belum terbentuk
+                                <span data-i18n-text="sys.not_created">Belum terbentuk</span>
                             {% endif %}
                         </div>
                         {% if db_error %}
@@ -138,8 +142,8 @@
                         {% endif %}
                     </div>
                     <div>
-                        <div style="font-weight:700;">Mode debug</div>
-                        <div style="color: {{ '#dc2626' if stats.debug else '#16a34a' }};">{{ "Aktif" if stats.debug else "Nonaktif" }}</div>
+                        <div style="font-weight:700;" data-i18n-text="sys.debug_mode">Mode debug</div>
+                        <div style="color: {{ '#dc2626' if stats.debug else '#16a34a' }};" data-i18n-text="{{ 'sys.active' if stats.debug else 'sys.inactive' }}">{{ "Aktif" if stats.debug else "Nonaktif" }}</div>
                     </div>
                 </div>
             </div>
@@ -147,22 +151,22 @@
     </div>
 
     <div class="card" style="padding: 1.2rem; margin-top: 1rem;">
-        <div class="pane-header" style="margin:-1.2rem -1.2rem 1rem -1.2rem;">Guardrail Aktif</div>
+        <div class="pane-header" style="margin:-1.2rem -1.2rem 1rem -1.2rem;" data-i18n-text="sys.guardrails">Guardrail Aktif</div>
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .8rem;">
             <div class="calc-section" style="padding:.9rem 1rem;">
-                <div style="font-size:.8rem; color: var(--text-muted);">Maks upload</div>
+                <div style="font-size:.8rem; color: var(--text-muted);" data-i18n-text="sys.max_upload">Maks upload</div>
                 <div style="font-weight:700;">{{ stats.max_upload_mb }} MB</div>
             </div>
             <div class="calc-section" style="padding:.9rem 1rem;">
-                <div style="font-size:.8rem; color: var(--text-muted);">Maks halaman PDF</div>
+                <div style="font-size:.8rem; color: var(--text-muted);" data-i18n-text="sys.max_pdf">Maks halaman PDF</div>
                 <div style="font-weight:700;">{{ stats.max_pdf_pages }}</div>
             </div>
             <div class="calc-section" style="padding:.9rem 1rem;">
-                <div style="font-size:.8rem; color: var(--text-muted);">Maks halaman OCR PDF</div>
+                <div style="font-size:.8rem; color: var(--text-muted);" data-i18n-text="sys.max_ocr">Maks halaman OCR PDF</div>
                 <div style="font-weight:700;">{{ stats.max_ocr_pdf_pages }}</div>
             </div>
             <div class="calc-section" style="padding:.9rem 1rem;">
-                <div style="font-size:.8rem; color: var(--text-muted);">Maks piksel gambar</div>
+                <div style="font-size:.8rem; color: var(--text-muted);" data-i18n-text="sys.max_pixels">Maks piksel gambar</div>
                 <div style="font-weight:700;">{{ "{:,}".format(stats.max_image_pixels) }}</div>
             </div>
         </div>
