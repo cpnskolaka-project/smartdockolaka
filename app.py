@@ -47,6 +47,7 @@ TOOL_CATEGORIES = [
             {"id": "page-numbers", "name": "Page Numbers", "desc": "Add page numbers to PDF", "icon": "bi-123"},
             {"id": "extract-images", "name": "Extract Images", "desc": "Extract images from PDF", "icon": "bi-images"},
             {"id": "watermark", "name": "PDF Watermark", "desc": "Add text watermark to PDF documents", "icon": "bi-water"},
+            {"id": "signature", "name": "PDF Signature", "desc": "Stamp signature image onto PDF pages", "icon": "bi-vector-pen"},
             {"id": "protect", "name": "Protect PDF", "desc": "Add password protection to PDF", "icon": "bi-lock-fill"},
             {"id": "unlock", "name": "Unlock PDF", "desc": "Remove PDF password", "icon": "bi-unlock-fill"},
         ],
@@ -163,12 +164,14 @@ for _cat in TOOL_CATEGORIES:
 ENDPOINT_NAMES.update({
     "pdf.process_delete": "Delete Pages",
     "pdf.process_watermark": "PDF Watermark",
+    "pdf.process_signature": "PDF Signature",
     "convert.process_pdf_excel": "PDF to Excel",
     "network.process_ping": "Cek Ping",
 })
 ENDPOINT_CATEGORIES.update({
     "pdf.process_delete": "PDF Tools",
     "pdf.process_watermark": "PDF Tools",
+    "pdf.process_signature": "PDF Tools",
     "convert.process_pdf_excel": "Document Conversion",
     "network.process_ping": "Alat Jaringan",
 })

@@ -2008,3 +2008,401 @@ textarea { resize: vertical; }
         grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     }
 }
+
+/* ══════════════════════════════════════════════════
+   PDF SIGNATURE STAMP — Premium Editor
+   ══════════════════════════════════════════════════ */
+.signature-tool-page {
+    max-width: 900px;
+}
+
+/* ── Upload Row (2-column) ── */
+.sig-upload-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    margin-bottom: 1.5rem;
+}
+
+.sig-upload-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.sig-upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-xl);
+    padding: 2rem 1.5rem 1.6rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    position: relative;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+}
+
+.sig-upload-zone:hover {
+    border-color: var(--primary);
+    background: var(--hover-bg);
+    box-shadow: var(--shadow-glow);
+}
+
+.sig-upload-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(245, 158, 11, 0.04);
+    box-shadow: var(--shadow-accent-glow);
+    transform: scale(1.01);
+}
+
+.sig-file-input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.sig-file-info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    font-size: 0.85rem;
+    border: 1px solid var(--border-light);
+    width: 100%;
+    max-width: 100%;
+    z-index: 3;
+    position: relative;
+    animation: fadeInUp 0.25s ease-out both;
+}
+
+.sig-file-info i {
+    color: var(--primary);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.sig-file-info span {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sig-file-remove {
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0.1rem 0.3rem;
+    border-radius: 6px;
+    transition: all var(--transition-fast);
+    line-height: 1;
+    flex-shrink: 0;
+    z-index: 5;
+}
+
+.sig-file-remove:hover {
+    background: var(--danger-bg);
+    color: var(--danger);
+}
+
+/* ── Signature Image Preview ── */
+.sig-image-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.8rem;
+    background: repeating-conic-gradient(var(--bg-secondary) 0% 25%, transparent 0% 50%) 0 0 / 16px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+}
+
+.sig-image-preview canvas {
+    max-width: 100%;
+    max-height: 120px;
+    border-radius: 6px;
+}
+
+.sig-preview-label {
+    font-size: 0.75rem;
+    color: var(--success);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.sig-preview-label::before {
+    content: "✓";
+}
+
+/* ── Editor Section ── */
+.sig-editor {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+    animation: fadeInUp 0.35s ease-out;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.sig-editor-header {
+    margin-bottom: 1.2rem;
+    text-align: center;
+}
+
+.sig-editor-header h2 {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.2rem;
+}
+
+.sig-editor-header p {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+}
+
+/* ── Page Navigation ── */
+.sig-page-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    margin-bottom: 1rem;
+}
+
+.sig-page-info {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.sig-page-input {
+    width: 3.2rem;
+    text-align: center;
+    padding: 0.25rem 0.3rem;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    font-weight: 600;
+    -moz-appearance: textfield;
+}
+
+.sig-page-input::-webkit-inner-spin-button,
+.sig-page-input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.sig-page-input:focus {
+    border-color: var(--primary);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+/* ── Canvas Wrapper (Preview Area) ── */
+.sig-canvas-wrapper {
+    margin-bottom: 1.2rem;
+    display: flex;
+    justify-content: center;
+}
+
+.sig-canvas-container {
+    position: relative;
+    display: inline-block;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    background: #fff;
+    max-width: 100%;
+    cursor: default;
+}
+
+[data-theme="dark"] .sig-canvas-container {
+    background: #2a2a2a;
+}
+
+.sig-canvas-container img#pdf-preview-img {
+    display: block;
+    max-width: 100%;
+    max-height: 600px;
+    width: auto;
+    height: auto;
+    transition: opacity 0.3s ease;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+/* ── Loading Overlay ── */
+.sig-loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    z-index: 10;
+    font-size: 0.88rem;
+    color: var(--primary);
+    font-weight: 500;
+}
+
+[data-theme="dark"] .sig-loading-overlay {
+    background: rgba(15, 23, 42, 0.85);
+}
+
+.sig-loading-overlay i {
+    font-size: 1.5rem;
+}
+
+/* ── Draggable Signature Overlay ── */
+.sig-draggable {
+    position: absolute;
+    cursor: grab;
+    z-index: 20;
+    border: 2px dashed var(--accent);
+    border-radius: 4px;
+    background: rgba(245, 158, 11, 0.05);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    touch-action: none;
+    user-select: none;
+}
+
+.sig-draggable:hover {
+    border-color: var(--primary);
+    box-shadow: 0 2px 12px rgba(39, 60, 102, 0.15);
+}
+
+.sig-draggable.dragging {
+    cursor: grabbing;
+    border-color: var(--primary);
+    box-shadow: 0 4px 20px rgba(39, 60, 102, 0.25);
+    opacity: 0.85;
+    z-index: 25;
+}
+
+.sig-draggable.resizing {
+    border-color: var(--success);
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.25);
+}
+
+.sig-draggable img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+/* ── Resize Handle ── */
+.sig-resize-handle {
+    position: absolute;
+    right: -4px;
+    bottom: -4px;
+    width: 16px;
+    height: 16px;
+    background: var(--accent);
+    border: 2px solid #fff;
+    border-radius: 3px;
+    cursor: nwse-resize;
+    z-index: 30;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    transition: transform 0.15s, background 0.15s;
+}
+
+.sig-resize-handle:hover {
+    transform: scale(1.2);
+    background: var(--primary);
+}
+
+/* ── Options Panel ── */
+.sig-options-panel {
+    margin-bottom: 1.2rem;
+    padding: 1rem 1.2rem;
+    background: var(--bg-secondary);
+    border-radius: var(--radius);
+    border: 1px solid var(--border-light);
+}
+
+.sig-options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.sig-help-text {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.3rem;
+}
+
+/* ── Submit Button ── */
+.sig-submit-btn {
+    width: 100%;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    justify-content: center;
+}
+
+/* ── Spin animation (re-use) ── */
+@keyframes spin-sig {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.sig-loading-overlay .spin,
+.sig-submit-btn .spin {
+    animation: spin-sig 1s linear infinite;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .sig-upload-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .sig-options-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .signature-tool-page {
+        max-width: 100%;
+    }
+    
+    .sig-editor {
+        padding: 1rem;
+    }
+    
+    .sig-canvas-container img#pdf-preview-img {
+        max-height: 400px;
+    }
+}

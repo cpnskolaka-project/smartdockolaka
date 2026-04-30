@@ -1,0 +1,608 @@
+{% extends "base.html" %}
+{% block title %}PDF Signature — SmartDoc Kolaka{% endblock %}
+{% block top_title %}PDF Signature{% endblock %}
+
+{% block content %}
+<div class="tool-page signature-tool-page">
+    <div class="tool-header">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h1 data-i18n-text="tool.pdf.signature">PDF Signature</h1>
+                <p data-i18n-text="desc.pdf.signature">Stamp signature image onto PDF pages</p>
+            </div>
+            <button class="favorite-btn" data-tool="pdf.signature" aria-label="Toggle Favorite" onclick="toggleFavorite(this, 'pdf.signature')">
+                <i class="bi bi-star"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 1: Upload Files -->
+    <div class="sig-upload-section" id="sig-upload-section">
+        <div class="sig-upload-row">
+            <!-- PDF Upload -->
+            <div class="sig-upload-card" id="pdf-upload-card">
+                <div class="sig-upload-zone" id="pdf-drop-zone">
+                    <input type="file" id="pdf-file-input" accept=".pdf" class="sig-file-input">
+                    <div class="upload-prompt" id="pdf-upload-prompt">
+                        <div class="upload-icon-wrap">
+                            <i class="bi bi-file-pdf-fill"></i>
+                        </div>
+                        <p class="upload-title" data-i18n-text="sig.upload_pdf">Upload PDF</p>
+                        <span class="upload-subtitle" data-i18n-text="sig.drag_pdf">Drag & drop or click to browse</span>
+                        <span class="upload-accepted">.pdf</span>
+                    </div>
+                    <div class="sig-file-info" id="pdf-file-info" style="display:none">
+                        <i class="bi bi-file-pdf-fill"></i>
+                        <span id="pdf-file-name"></span>
+                        <button type="button" class="sig-file-remove" id="pdf-file-remove">&times;</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signature Image Upload -->
+            <div class="sig-upload-card" id="sig-upload-card">
+                <div class="sig-upload-zone" id="sig-drop-zone">
+                    <input type="file" id="sig-file-input" accept=".jpg,.jpeg,.png,.bmp,.webp" class="sig-file-input">
+                    <div class="upload-prompt" id="sig-upload-prompt">
+                        <div class="upload-icon-wrap">
+                            <i class="bi bi-vector-pen"></i>
+                        </div>
+                        <p class="upload-title" data-i18n-text="sig.upload_sig">Upload Signature</p>
+                        <span class="upload-subtitle" data-i18n-text="sig.drag_sig">Signature photo on white background</span>
+                        <span class="upload-accepted">.jpg .png .bmp .webp</span>
+                    </div>
+                    <div class="sig-file-info" id="sig-file-info" style="display:none">
+                        <i class="bi bi-vector-pen"></i>
+                        <span id="sig-file-name"></span>
+                        <button type="button" class="sig-file-remove" id="sig-file-remove">&times;</button>
+                    </div>
+                </div>
+                <!-- Signature preview (after background removal) -->
+                <div class="sig-image-preview" id="sig-image-preview" style="display:none">
+                    <canvas id="sig-preview-canvas"></canvas>
+                    <span class="sig-preview-label" data-i18n-text="sig.bg_removed">Background removed</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Step 2: Editor (visible after both files uploaded) -->
+    <div class="sig-editor" id="sig-editor" style="display:none">
+        <div class="sig-editor-header">
+            <h2 data-i18n-text="sig.position_title">Position Signature</h2>
+            <p data-i18n-text="sig.position_desc">Drag the signature to your desired position on the PDF page</p>
+        </div>
+
+        <!-- Page Navigation -->
+        <div class="sig-page-nav">
+            <button type="button" class="btn btn-small" id="prev-page-btn" disabled>
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            <span class="sig-page-info">
+                <span data-i18n-text="sig.page">Page</span>
+                <input type="number" id="page-number-input" value="1" min="1" class="sig-page-input">
+                <span data-i18n-text="sig.of">of</span>
+                <span id="total-pages">1</span>
+            </span>
+            <button type="button" class="btn btn-small" id="next-page-btn" disabled>
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+
+        <!-- PDF Preview Canvas with Draggable Signature -->
+        <div class="sig-canvas-wrapper" id="sig-canvas-wrapper">
+            <div class="sig-canvas-container" id="sig-canvas-container">
+                <img id="pdf-preview-img" alt="PDF Preview" draggable="false">
+                <div class="sig-loading-overlay" id="sig-loading-overlay">
+                    <i class="bi bi-arrow-repeat spin"></i>
+                    <span data-i18n-text="sig.loading_preview">Loading preview...</span>
+                </div>
+                <!-- Draggable Signature Overlay -->
+                <div class="sig-draggable" id="sig-draggable" style="display:none">
+                    <img id="sig-draggable-img" alt="Signature" draggable="false">
+                    <div class="sig-resize-handle" id="sig-resize-handle"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Options Panel -->
+        <div class="sig-options-panel">
+            <div class="sig-options-grid">
+                <!-- Threshold -->
+                <div class="form-group">
+                    <label for="sig-threshold" data-i18n-text="sig.threshold_label">Background Sensitivity</label>
+                    <div class="range-group">
+                        <input type="range" id="sig-threshold" min="180" max="255" value="240" step="1"
+                            oninput="this.nextElementSibling.textContent=this.value">
+                        <span class="range-value">240</span>
+                    </div>
+                    <small class="sig-help-text" data-i18n-text="sig.threshold_help">Higher = remove more background. Lower = keep more detail.</small>
+                </div>
+
+                <!-- Page Selection -->
+                <div class="form-group">
+                    <label data-i18n-text="sig.page_target">Apply to Pages</label>
+                    <select id="sig-page-mode">
+                        <option value="current" data-i18n-text="sig.page_current">Current page only</option>
+                        <option value="all" data-i18n-text="sig.page_all">All pages</option>
+                        <option value="custom" data-i18n-text="sig.page_custom">Custom range</option>
+                    </select>
+                    <input type="text" id="sig-custom-pages" placeholder="e.g. 1-3, 5, 7-10" style="display:none; margin-top: 0.5rem;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Button -->
+        <button type="button" class="btn btn-primary sig-submit-btn" id="sig-submit-btn">
+            <span class="btn-text" id="sig-btn-text">
+                <i class="bi bi-vector-pen"></i> <span data-i18n-text="sig.stamp_btn">Stamp Signature</span>
+            </span>
+            <span class="btn-loading" id="sig-btn-loading" style="display:none">
+                <i class="bi bi-arrow-repeat spin"></i> <span data-i18n-text="upload.processing">Processing...</span>
+            </span>
+        </button>
+    </div>
+
+    <!-- Result Area -->
+    <div id="result-area" class="result-area" style="display:none">
+        <div id="result-success" class="result-success" style="display:none">
+            <i class="bi bi-check-circle-fill"></i>
+            <span id="result-message" data-i18n-text="result.done">Done!</span>
+            <a id="download-btn" class="btn btn-success" download>
+                <i class="bi bi-download"></i> <span data-i18n-text="result.download">Download</span>
+            </a>
+        </div>
+        <div id="result-error" class="result-error" style="display:none">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span id="error-message"></span>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // ── State ──
+    let pdfFile = null;
+    let sigFile = null;
+    let sigProcessedDataUrl = null;
+    let currentPage = 1;
+    let totalPages = 1;
+    let pageWidthPt = 595;
+    let pageHeightPt = 842;
+    let isDragging = false;
+    let isResizing = false;
+    let dragStartX = 0, dragStartY = 0;
+    let sigStartX = 0, sigStartY = 0;
+    let resizeStartW = 0, resizeStartH = 0;
+
+    // ── DOM refs ──
+    const pdfInput = document.getElementById("pdf-file-input");
+    const sigInput = document.getElementById("sig-file-input");
+    const pdfDropZone = document.getElementById("pdf-drop-zone");
+    const sigDropZone = document.getElementById("sig-drop-zone");
+    const pdfPrompt = document.getElementById("pdf-upload-prompt");
+    const sigPrompt = document.getElementById("sig-upload-prompt");
+    const pdfFileInfo = document.getElementById("pdf-file-info");
+    const sigFileInfo = document.getElementById("sig-file-info");
+    const pdfFileName = document.getElementById("pdf-file-name");
+    const sigFileName = document.getElementById("sig-file-name");
+    const sigImagePreview = document.getElementById("sig-image-preview");
+    const sigPreviewCanvas = document.getElementById("sig-preview-canvas");
+    const sigEditor = document.getElementById("sig-editor");
+    const pdfPreviewImg = document.getElementById("pdf-preview-img");
+    const sigDraggable = document.getElementById("sig-draggable");
+    const sigDraggableImg = document.getElementById("sig-draggable-img");
+    const sigResizeHandle = document.getElementById("sig-resize-handle");
+    const loadingOverlay = document.getElementById("sig-loading-overlay");
+    const prevBtn = document.getElementById("prev-page-btn");
+    const nextBtn = document.getElementById("next-page-btn");
+    const pageInput = document.getElementById("page-number-input");
+    const totalPagesEl = document.getElementById("total-pages");
+    const thresholdSlider = document.getElementById("sig-threshold");
+    const pageModeSelect = document.getElementById("sig-page-mode");
+    const customPagesInput = document.getElementById("sig-custom-pages");
+    const submitBtn = document.getElementById("sig-submit-btn");
+    const canvasContainer = document.getElementById("sig-canvas-container");
+
+    // ── Drag & Drop zones ──
+    function setupDropZone(zone, input, onFiles) {
+        zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("dragover"); });
+        zone.addEventListener("dragleave", () => zone.classList.remove("dragover"));
+        zone.addEventListener("drop", e => {
+            e.preventDefault();
+            zone.classList.remove("dragover");
+            if (e.dataTransfer.files.length > 0) {
+                onFiles(e.dataTransfer.files[0]);
+            }
+        });
+        input.addEventListener("change", () => {
+            if (input.files.length > 0) {
+                onFiles(input.files[0]);
+            }
+        });
+    }
+
+    setupDropZone(pdfDropZone, pdfInput, file => {
+        if (!file.name.toLowerCase().endsWith(".pdf")) return;
+        pdfFile = file;
+        pdfPrompt.style.display = "none";
+        pdfFileInfo.style.display = "flex";
+        pdfFileName.textContent = file.name + " (" + formatSizeLocal(file.size) + ")";
+        checkReady();
+    });
+
+    setupDropZone(sigDropZone, sigInput, file => {
+        const validExts = [".jpg", ".jpeg", ".png", ".bmp", ".webp"];
+        const ext = "." + file.name.split(".").pop().toLowerCase();
+        if (!validExts.includes(ext)) return;
+        sigFile = file;
+        sigPrompt.style.display = "none";
+        sigFileInfo.style.display = "flex";
+        sigFileName.textContent = file.name + " (" + formatSizeLocal(file.size) + ")";
+        processSignaturePreview(); // This calls checkReady() after async processing
+    });
+
+    // Remove file buttons
+    document.getElementById("pdf-file-remove").addEventListener("click", e => {
+        e.stopPropagation();
+        pdfFile = null;
+        pdfInput.value = "";
+        pdfPrompt.style.display = "";
+        pdfFileInfo.style.display = "none";
+        sigEditor.style.display = "none";
+        document.getElementById("result-area").style.display = "none";
+    });
+
+    document.getElementById("sig-file-remove").addEventListener("click", e => {
+        e.stopPropagation();
+        sigFile = null;
+        sigProcessedDataUrl = null;
+        sigInput.value = "";
+        sigPrompt.style.display = "";
+        sigFileInfo.style.display = "none";
+        sigImagePreview.style.display = "none";
+        sigDraggable.style.display = "none";
+        sigEditor.style.display = "none";
+        document.getElementById("result-area").style.display = "none";
+    });
+
+    function formatSizeLocal(bytes) {
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+        return (bytes / 1048576).toFixed(1) + " MB";
+    }
+
+    // ── Process signature preview (client-side background removal for preview) ──
+    function processSignaturePreview() {
+        if (!sigFile) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = sigPreviewCanvas;
+                const ctx = canvas.getContext("2d");
+
+                // Scale down for preview if too large
+                let w = img.width, h = img.height;
+                const maxDim = 300;
+                if (w > maxDim || h > maxDim) {
+                    const ratio = Math.min(maxDim / w, maxDim / h);
+                    w = Math.round(w * ratio);
+                    h = Math.round(h * ratio);
+                }
+                canvas.width = w;
+                canvas.height = h;
+                ctx.drawImage(img, 0, 0, w, h);
+
+                // Apply threshold-based background removal
+                applyThresholdRemoval(canvas, ctx, parseInt(thresholdSlider.value));
+
+                sigProcessedDataUrl = canvas.toDataURL("image/png");
+                sigImagePreview.style.display = "flex";
+
+                // Also update draggable if editor is visible
+                if (sigEditor.style.display !== "none") {
+                    sigDraggableImg.src = sigProcessedDataUrl;
+                    sigDraggable.style.display = "block";
+                }
+
+                // Check if both files ready now (called after async processing)
+                checkReady();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(sigFile);
+    }
+
+    function applyThresholdRemoval(canvas, ctx, threshold) {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i+1], b = data[i+2];
+            const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+            if (luminance >= threshold) {
+                data[i+3] = 0; // Make transparent
+            } else {
+                data[i+3] = 255; // Full opacity
+            }
+        }
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    // Update preview when threshold changes
+    thresholdSlider.addEventListener("input", () => {
+        processSignaturePreview();
+    });
+
+    // ── Check if both files ready → show editor ──
+    function checkReady() {
+        if (pdfFile && sigFile && sigProcessedDataUrl) {
+            if (sigEditor.style.display === "none") {
+                sigEditor.style.display = "block";
+                loadPdfPreview(1);
+            }
+        }
+    }
+
+    // ── Load PDF page preview ──
+    async function loadPdfPreview(pageNum) {
+        if (!pdfFile) return;
+        loadingOverlay.style.display = "flex";
+        pdfPreviewImg.style.opacity = "0.3";
+
+        const formData = new FormData();
+        formData.append("file", pdfFile);
+        formData.append("page", pageNum);
+        formData.append("dpi", "150");
+
+        try {
+            const resp = await fetch("/pdf/signature/preview", { method: "POST", body: formData });
+            const data = await resp.json();
+
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            pdfPreviewImg.src = data.image;
+            pdfPreviewImg.style.opacity = "1";
+            totalPages = data.total_pages;
+            currentPage = data.current_page;
+            pageWidthPt = data.page_width_pt;
+            pageHeightPt = data.page_height_pt;
+
+            totalPagesEl.textContent = totalPages;
+            pageInput.value = currentPage;
+            pageInput.max = totalPages;
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = currentPage >= totalPages;
+
+            // Show signature draggable
+            if (sigProcessedDataUrl) {
+                sigDraggableImg.src = sigProcessedDataUrl;
+                sigDraggable.style.display = "block";
+
+                // Default position: bottom-center (good for signatures)
+                const container = canvasContainer;
+                requestAnimationFrame(() => {
+                    const cW = container.offsetWidth;
+                    const cH = container.offsetHeight;
+                    const sigW = Math.max(cW * 0.2, 80);
+                    const sigH = sigW * 0.5;
+                    sigDraggable.style.width = sigW + "px";
+                    sigDraggable.style.height = sigH + "px";
+                    sigDraggable.style.left = ((cW - sigW) / 2) + "px";
+                    sigDraggable.style.top = (cH * 0.75) + "px";
+                });
+            }
+        } catch (err) {
+            console.error("Preview error:", err);
+        } finally {
+            loadingOverlay.style.display = "none";
+        }
+    }
+
+    // ── Page navigation ──
+    prevBtn.addEventListener("click", () => {
+        if (currentPage > 1) loadPdfPreview(currentPage - 1);
+    });
+    nextBtn.addEventListener("click", () => {
+        if (currentPage < totalPages) loadPdfPreview(currentPage + 1);
+    });
+    pageInput.addEventListener("change", () => {
+        let p = parseInt(pageInput.value);
+        if (p >= 1 && p <= totalPages) loadPdfPreview(p);
+        else pageInput.value = currentPage;
+    });
+
+    // ── Draggable signature ──
+    function getPointerPos(e) {
+        const touch = e.touches ? e.touches[0] : e;
+        return { x: touch.clientX, y: touch.clientY };
+    }
+
+    sigDraggable.addEventListener("mousedown", startDrag);
+    sigDraggable.addEventListener("touchstart", startDrag, { passive: false });
+    sigResizeHandle.addEventListener("mousedown", startResize);
+    sigResizeHandle.addEventListener("touchstart", startResize, { passive: false });
+
+    function startDrag(e) {
+        if (e.target === sigResizeHandle || e.target.closest(".sig-resize-handle")) return;
+        e.preventDefault();
+        isDragging = true;
+        const pos = getPointerPos(e);
+        const rect = sigDraggable.getBoundingClientRect();
+        dragStartX = pos.x - rect.left;
+        dragStartY = pos.y - rect.top;
+        sigDraggable.classList.add("dragging");
+    }
+
+    function startResize(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        isResizing = true;
+        const pos = getPointerPos(e);
+        dragStartX = pos.x;
+        dragStartY = pos.y;
+        resizeStartW = sigDraggable.offsetWidth;
+        resizeStartH = sigDraggable.offsetHeight;
+        sigDraggable.classList.add("resizing");
+    }
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("touchmove", onMove, { passive: false });
+
+    function onMove(e) {
+        if (!isDragging && !isResizing) return;
+        e.preventDefault();
+        const pos = getPointerPos(e);
+        const containerRect = canvasContainer.getBoundingClientRect();
+
+        if (isDragging) {
+            let newX = pos.x - containerRect.left - dragStartX;
+            let newY = pos.y - containerRect.top - dragStartY;
+            // Constrain within container
+            const maxX = containerRect.width - sigDraggable.offsetWidth;
+            const maxY = containerRect.height - sigDraggable.offsetHeight;
+            newX = Math.max(0, Math.min(newX, maxX));
+            newY = Math.max(0, Math.min(newY, maxY));
+            sigDraggable.style.left = newX + "px";
+            sigDraggable.style.top = newY + "px";
+        }
+
+        if (isResizing) {
+            const dx = pos.x - dragStartX;
+            const dy = pos.y - dragStartY;
+            let newW = Math.max(40, resizeStartW + dx);
+            let newH = Math.max(20, resizeStartH + dy);
+            // Constrain within container
+            const sigLeft = parseFloat(sigDraggable.style.left) || 0;
+            const sigTop = parseFloat(sigDraggable.style.top) || 0;
+            newW = Math.min(newW, containerRect.width - sigLeft);
+            newH = Math.min(newH, containerRect.height - sigTop);
+            sigDraggable.style.width = newW + "px";
+            sigDraggable.style.height = newH + "px";
+        }
+    }
+
+    document.addEventListener("mouseup", endDragResize);
+    document.addEventListener("touchend", endDragResize);
+
+    function endDragResize() {
+        isDragging = false;
+        isResizing = false;
+        sigDraggable.classList.remove("dragging", "resizing");
+    }
+
+    // ── Page mode toggle ──
+    pageModeSelect.addEventListener("change", () => {
+        customPagesInput.style.display = pageModeSelect.value === "custom" ? "block" : "none";
+    });
+
+    // ── Submit ──
+    submitBtn.addEventListener("click", async () => {
+        if (!pdfFile || !sigFile) return;
+
+        const btnText = document.getElementById("sig-btn-text");
+        const btnLoad = document.getElementById("sig-btn-loading");
+        btnText.style.display = "none";
+        btnLoad.style.display = "inline-flex";
+        submitBtn.disabled = true;
+        document.getElementById("result-area").style.display = "none";
+
+        // Calculate position as percentage of container → percentage of PDF page
+        const containerRect = canvasContainer.getBoundingClientRect();
+        const previewRect = pdfPreviewImg.getBoundingClientRect();
+
+        // Calculate position relative to the preview image (not the container)
+        const sigLeft = parseFloat(sigDraggable.style.left) || 0;
+        const sigTop = parseFloat(sigDraggable.style.top) || 0;
+        const sigW = sigDraggable.offsetWidth;
+        const sigH = sigDraggable.offsetHeight;
+
+        // Image offset within container
+        const imgOffsetX = previewRect.left - containerRect.left;
+        const imgOffsetY = previewRect.top - containerRect.top;
+        const imgW = previewRect.width;
+        const imgH = previewRect.height;
+
+        // Position relative to the PDF image
+        const relX = sigLeft - imgOffsetX;
+        const relY = sigTop - imgOffsetY;
+
+        const xPct = (relX / imgW) * 100;
+        const yPct = (relY / imgH) * 100;
+        const wPct = (sigW / imgW) * 100;
+        const hPct = (sigH / imgH) * 100;
+
+        const formData = new FormData();
+        formData.append("pdf_file", pdfFile);
+        formData.append("signature_file", sigFile);
+        formData.append("x_pct", Math.max(0, xPct).toFixed(2));
+        formData.append("y_pct", Math.max(0, yPct).toFixed(2));
+        formData.append("w_pct", Math.max(1, wPct).toFixed(2));
+        formData.append("h_pct", Math.max(1, hPct).toFixed(2));
+        formData.append("threshold", thresholdSlider.value);
+        formData.append("page_mode", pageModeSelect.value);
+
+        if (pageModeSelect.value === "current") {
+            formData.append("pages", currentPage.toString());
+        } else if (pageModeSelect.value === "custom") {
+            formData.append("pages", customPagesInput.value);
+        }
+
+        try {
+            const resp = await fetch("/pdf/signature", { method: "POST", body: formData });
+
+            if (!resp.ok) {
+                let msg = "Processing failed.";
+                try { const j = await resp.json(); msg = j.error || msg; } catch(_) {}
+                showSigError(msg);
+                return;
+            }
+
+            const blob = await resp.blob();
+            const cd = resp.headers.get("Content-Disposition") || "";
+            let filename = "signed.pdf";
+            const match = cd.match(/filename="?([^";\n]+)"?/);
+            if (match) filename = match[1];
+
+            const url = URL.createObjectURL(blob);
+            const area = document.getElementById("result-area");
+            area.style.display = "block";
+            document.getElementById("result-error").style.display = "none";
+            const success = document.getElementById("result-success");
+            success.style.display = "flex";
+            document.getElementById("result-message").textContent = t("result.file_ready") || "File ready!";
+
+            const dlBtn = document.getElementById("download-btn");
+            dlBtn.href = url;
+            dlBtn.download = filename;
+            dlBtn.innerHTML = '<i class="bi bi-download"></i> ' + (t("result.download") || "Download") + ' ' + filename;
+
+            // Add to recent
+            addRecentTool("pdf.signature");
+        } catch (err) {
+            showSigError("Network error: " + err.message);
+        } finally {
+            btnText.style.display = "";
+            btnLoad.style.display = "none";
+            submitBtn.disabled = false;
+        }
+    });
+
+    function showSigError(msg) {
+        const area = document.getElementById("result-area");
+        area.style.display = "block";
+        document.getElementById("result-success").style.display = "none";
+        const errEl = document.getElementById("result-error");
+        errEl.style.display = "flex";
+        document.getElementById("error-message").textContent = msg;
+    }
+
+});
+</script>
+{% endblock %}

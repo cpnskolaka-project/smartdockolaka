@@ -55,7 +55,8 @@
 .bi-image-fill::before,
 .bi-images::before { content: "\1F5BC"; }
 .bi-file-pdf::before,
-.bi-file-pdf-fill::before { content: "PDF"; font-size: 0.7em; font-weight: 700; }
+.bi-file-pdf-fill::before { content: "\1F4C4"; }
+.bi-vector-pen::before { content: "\2712"; font-size: 1.1em; }
 .bi-file-word-fill::before { content: "W"; font-size: 0.85em; font-weight: 700; }
 .bi-file-zip-fill::before { content: "\1F5DC"; }
 .bi-files::before { content: "\1F4D1"; }

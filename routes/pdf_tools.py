@@ -708,3 +708,155 @@ def process_watermark():
         return send_file(output, mimetype="application/pdf", as_attachment=True, download_name=f"watermarked_{f.filename}")
     except Exception as e:
         return jsonify(error=str(e)), 500
+
+
+# ── PDF Signature Stamp ──────────────────────────
+
+@bp.route("/signature")
+def signature():
+    return render_template("tools/pdf_signature.html")
+
+
+@bp.route("/signature/preview", methods=["POST"])
+def signature_preview():
+    """Generate a preview image of a specific PDF page."""
+    f = request.files.get("file")
+    if not f or not f.filename:
+        return jsonify(error="No PDF file provided."), 400
+
+    page_num = int(request.form.get("page", 1)) - 1  # Convert to 0-based
+    dpi = int(request.form.get("dpi", 150))
+    dpi = max(72, min(dpi, 300))  # Clamp to safe range
+
+    try:
+        doc = fitz.open(stream=f.read(), filetype="pdf")
+        total_pages = len(doc)
+
+        if page_num < 0 or page_num >= total_pages:
+            doc.close()
+            return jsonify(error="Invalid page number."), 400
+
+        page = doc[page_num]
+        mat = fitz.Matrix(dpi / 72, dpi / 72)
+        pix = page.get_pixmap(matrix=mat)
+
+        img_bytes = pix.tobytes("png")
+
+        # Get page dimensions in points for coordinate calculation
+        rect = page.rect
+        page_width_pt = rect.width
+        page_height_pt = rect.height
+
+        doc.close()
+
+        import base64
+        b64 = base64.b64encode(img_bytes).decode("utf-8")
+
+        return jsonify(
+            image=f"data:image/png;base64,{b64}",
+            total_pages=total_pages,
+            current_page=page_num + 1,
+            page_width_pt=page_width_pt,
+            page_height_pt=page_height_pt,
+        )
+    except Exception as e:
+        return jsonify(error=f"Failed to generate preview: {str(e)}"), 500
+
+
+@bp.route("/signature", methods=["POST"])
+def process_signature():
+    """Stamp a signature image onto specified PDF pages with background removed."""
+    pdf_file = request.files.get("pdf_file")
+    sig_file = request.files.get("signature_file")
+
+    if not pdf_file or not pdf_file.filename:
+        return jsonify(error="No PDF file provided."), 400
+    if not sig_file or not sig_file.filename:
+        return jsonify(error="No signature image provided."), 400
+
+    try:
+        # Get positioning parameters (as percentages of page dimensions)
+        x_pct = float(request.form.get("x_pct", 50))
+        y_pct = float(request.form.get("y_pct", 80))
+        w_pct = float(request.form.get("w_pct", 20))
+        h_pct = float(request.form.get("h_pct", 10))
+        threshold = int(request.form.get("threshold", 240))
+        threshold = max(100, min(threshold, 255))
+
+        # Page selection
+        page_mode = request.form.get("page_mode", "current")  # current, all, custom
+        page_spec = request.form.get("pages", "1")
+
+        # ── Process signature image: remove white/light background ──
+        sig_img = Image.open(sig_file.stream)
+        sig_img = sig_img.convert("RGBA")
+        pixels = sig_img.load()
+        width, height = sig_img.size
+
+        for y in range(height):
+            for x in range(width):
+                r, g, b, a = pixels[x, y]
+                # Calculate luminance
+                luminance = 0.299 * r + 0.587 * g + 0.114 * b
+                if luminance >= threshold:
+                    # Make light pixels fully transparent
+                    pixels[x, y] = (r, g, b, 0)
+                else:
+                    # Darken the signature slightly for better visibility
+                    # and ensure full opacity
+                    pixels[x, y] = (r, g, b, 255)
+
+        # Save processed signature to bytes
+        sig_buf = io.BytesIO()
+        sig_img.save(sig_buf, format="PNG")
+        sig_bytes = sig_buf.getvalue()
+
+        # ── Open PDF and stamp signature ──
+        pdf_data = pdf_file.read()
+        doc = fitz.open(stream=pdf_data, filetype="pdf")
+        total_pages = len(doc)
+
+        # Determine target pages
+        if page_mode == "all":
+            target_pages = list(range(total_pages))
+        elif page_mode == "custom":
+            target_pages = parse_page_ranges(page_spec, total_pages)
+        else:
+            # "current" — use page_spec as a single page number
+            try:
+                p = int(page_spec) - 1
+                target_pages = [p] if 0 <= p < total_pages else [0]
+            except (ValueError, TypeError):
+                target_pages = [0]
+
+        # Stamp on each target page
+        for page_idx in target_pages:
+            page = doc[page_idx]
+            rect = page.rect
+            pw = rect.width
+            ph = rect.height
+
+            # Convert percentage positions to absolute coordinates
+            sig_w = pw * (w_pct / 100)
+            sig_h = ph * (h_pct / 100)
+            sig_x = pw * (x_pct / 100)
+            sig_y = ph * (y_pct / 100)
+
+            # Create rectangle for signature placement
+            sig_rect = fitz.Rect(sig_x, sig_y, sig_x + sig_w, sig_y + sig_h)
+
+            # Insert the transparent PNG image
+            page.insert_image(sig_rect, stream=sig_bytes, overlay=True)
+
+        # Save output
+        output = io.BytesIO()
+        doc.save(output)
+        doc.close()
+        output.seek(0)
+
+        dl_name = pdf_file.filename.rsplit(".", 1)[0] + "_signed.pdf"
+        return send_file(output, mimetype="application/pdf",
+                         as_attachment=True, download_name=dl_name)
+
+    except Exception as e:
+        return jsonify(error=f"Failed to stamp signature: {str(e)}"), 500
