@@ -14,6 +14,7 @@ const TRANSLATIONS = {
         "cat.qr": "QR Code",
         "cat.security": "Security",
         "cat.network": "Network Tools",
+        "cat.dev": "Developer Utilities",
         
         "tool.convert.to-pdf": "Files to PDF",
         "tool.convert.pdf-to-word": "PDF to Word",
@@ -36,6 +37,8 @@ const TRANSLATIONS = {
         "tool.pdf.signature": "PDF Signature",
         "tool.pdf.protect": "Protect PDF",
         "tool.pdf.unlock": "Unlock PDF",
+        "tool.pdf.redact": "Redact PDF",
+        "tool.pdf.form-fill": "Fill PDF Form",
         
         "tool.spreadsheet.excel-to-csv": "Excel to CSV/JSON",
         "tool.spreadsheet.csv-to-excel": "CSV/JSON to Excel",
@@ -87,6 +90,17 @@ const TRANSLATIONS = {
         
         "tool.network.ping": "Ping Test",
         
+        "tool.dev.uuid": "UUID Generator",
+        "tool.dev.jwt": "JWT Decoder",
+        "tool.dev.user-agent": "User-Agent Parser",
+        "tool.dev.sql-format": "SQL Formatter",
+        "tool.dev.xml-format": "XML Formatter",
+        "tool.dev.html-format": "HTML Formatter",
+        "tool.dev.css-format": "CSS Formatter",
+        "tool.dev.js-format": "JS Formatter",
+        "tool.dev.cron": "Cron Parser",
+        "tool.dev.jsonpath": "JSONPath Tester",
+        
         "desc.convert.to-pdf": "Convert images and text files to PDF",
         "desc.convert.pdf-to-word": "Convert PDF to Word document",
         "desc.convert.pdf-to-excel": "Extract PDF tabular data to Excel",
@@ -107,6 +121,8 @@ const TRANSLATIONS = {
         "desc.pdf.signature": "Stamp signature image onto PDF pages",
         "desc.pdf.protect": "Add password protection to PDF",
         "desc.pdf.unlock": "Remove PDF password",
+        "desc.pdf.redact": "Permanently black-out sensitive text",
+        "desc.pdf.form-fill": "Fill AcroForm interactive fields",
         "desc.spreadsheet.excel-to-csv": "Export sheets as CSV or JSON",
         "desc.spreadsheet.csv-to-excel": "Build .xlsx from CSV or JSON files",
         "desc.spreadsheet.excel-to-pdf": "Convert workbook to PDF (one section per sheet)",
@@ -151,6 +167,17 @@ const TRANSLATIONS = {
         "desc.security.system-check": "Inspect local readiness, optional dependencies, and autostart status",
         "desc.network.ping": "Check network connectivity and latency",
         
+        "desc.dev.uuid": "Generate v4 UUIDs (bulk supported)",
+        "desc.dev.jwt": "Decode JWT tokens (client-side)",
+        "desc.dev.user-agent": "Parse browser, OS, and device info",
+        "desc.dev.sql-format": "Pretty-print SQL with keyword casing",
+        "desc.dev.xml-format": "Format, validate, and minify XML",
+        "desc.dev.html-format": "Beautify or minify HTML",
+        "desc.dev.css-format": "Beautify or minify CSS",
+        "desc.dev.js-format": "Beautify or minify JavaScript",
+        "desc.dev.cron": "Validate cron and preview runs",
+        "desc.dev.jsonpath": "Query JSON with JSONPath expressions",
+        
         "home.title": "SmartDoc Kolaka",
         "home.subtitle": "Digital Utility System — KPP Pratama Kolaka",
         
@@ -158,6 +185,14 @@ const TRANSLATIONS = {
         "upload.browse": "or click to browse",
         "upload.process": "Process",
         "upload.processing": "Processing...",
+        
+        "label.pdf_file": "Select PDF File:",
+        "label.redact_terms": "Text to Redact (one per line):",
+        "label.use_regex": "Treat as Regex",
+        "btn.redact": "Redact Text",
+        "btn.read_form": "Read Form Fields",
+        "title.fill_fields": "Fill Form Fields",
+        "btn.download_filled": "Download Filled PDF",
         
         "result.done": "Done!",
         "result.file_ready": "File ready!",
@@ -265,6 +300,7 @@ const TRANSLATIONS = {
         "cat.qr": "Kode QR",
         "cat.security": "Keamanan",
         "cat.network": "Alat Jaringan",
+        "cat.dev": "Utilitas Developer",
         
         "tool.convert.to-pdf": "File ke PDF",
         "tool.convert.pdf-to-word": "PDF ke Word",
@@ -287,6 +323,8 @@ const TRANSLATIONS = {
         "tool.pdf.signature": "Tanda Tangan PDF",
         "tool.pdf.protect": "Lindungi PDF",
         "tool.pdf.unlock": "Buka Kunci PDF",
+        "tool.pdf.redact": "Sensor PDF",
+        "tool.pdf.form-fill": "Isi Form PDF",
         
         "tool.spreadsheet.excel-to-csv": "Excel ke CSV/JSON",
         "tool.spreadsheet.csv-to-excel": "CSV/JSON ke Excel",
@@ -338,6 +376,17 @@ const TRANSLATIONS = {
         
         "tool.network.ping": "Cek Ping",
         
+        "tool.dev.uuid": "Pembuat UUID",
+        "tool.dev.jwt": "Dekoder JWT",
+        "tool.dev.user-agent": "Pengurai User-Agent",
+        "tool.dev.sql-format": "Pemformat SQL",
+        "tool.dev.xml-format": "Pemformat XML",
+        "tool.dev.html-format": "Pemformat HTML",
+        "tool.dev.css-format": "Pemformat CSS",
+        "tool.dev.js-format": "Pemformat JS",
+        "tool.dev.cron": "Pengurai Cron",
+        "tool.dev.jsonpath": "Penguji JSONPath",
+        
         "desc.convert.to-pdf": "Konversi gambar dan teks ke PDF",
         "desc.convert.pdf-to-word": "Konversi PDF ke dokumen Word",
         "desc.convert.pdf-to-excel": "Ekstrak data tabel PDF ke Excel",
@@ -358,6 +407,8 @@ const TRANSLATIONS = {
         "desc.pdf.signature": "Tempelkan gambar tanda tangan ke halaman PDF",
         "desc.pdf.protect": "Tambahkan perlindungan kata sandi ke PDF",
         "desc.pdf.unlock": "Hapus kata sandi PDF",
+        "desc.pdf.redact": "Sensor teks sensitif secara permanen",
+        "desc.pdf.form-fill": "Isi kolom form interaktif AcroForm",
         "desc.spreadsheet.excel-to-csv": "Ekspor lembar sebagai CSV atau JSON",
         "desc.spreadsheet.csv-to-excel": "Buat .xlsx dari file CSV atau JSON",
         "desc.spreadsheet.excel-to-pdf": "Konversi buku kerja ke PDF (satu bagian per lembar)",
@@ -402,6 +453,17 @@ const TRANSLATIONS = {
         "desc.security.system-check": "Periksa kesiapan lokal, dependency opsional, dan status autostart",
         "desc.network.ping": "Periksa konektivitas dan latensi jaringan",
         
+        "desc.dev.uuid": "Buat UUID v4 (mendukung jumlah banyak)",
+        "desc.dev.jwt": "Dekode token JWT (client-side)",
+        "desc.dev.user-agent": "Urai info browser, OS, dan perangkat",
+        "desc.dev.sql-format": "Percantik format SQL dengan kapitalisasi otomatis",
+        "desc.dev.xml-format": "Format, validasi, dan minify XML",
+        "desc.dev.html-format": "Percantik atau minify HTML",
+        "desc.dev.css-format": "Percantik atau minify CSS",
+        "desc.dev.js-format": "Percantik atau minify JavaScript",
+        "desc.dev.cron": "Validasi cron dan pratinjau jadwal rilis",
+        "desc.dev.jsonpath": "Query JSON menggunakan ekspresi JSONPath",
+        
         "home.title": "SmartDoc Kolaka",
         "home.subtitle": "Sistem Utilitas Digital — KPP Pratama Kolaka",
         
@@ -409,6 +471,14 @@ const TRANSLATIONS = {
         "upload.browse": "atau klik untuk memilih",
         "upload.process": "Proses",
         "upload.processing": "Memproses...",
+        
+        "label.pdf_file": "Pilih File PDF:",
+        "label.redact_terms": "Teks untuk Disensor (satu per baris):",
+        "label.use_regex": "Mode Regex",
+        "btn.redact": "Sensor Teks",
+        "btn.read_form": "Baca Kolom Form",
+        "title.fill_fields": "Isi Kolom Form",
+        "btn.download_filled": "Unduh PDF Terisi",
         
         "result.done": "Selesai!",
         "result.file_ready": "File siap!",

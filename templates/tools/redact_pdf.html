@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Redact PDF - SmartDoc Kolaka{% endblock %}
+{% block top_title %}Redact PDF{% endblock %}
+
+{% block content %}
+<div class="tool-page">
+    <div class="tool-header">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h1 data-i18n-text="tool.pdf.redact">Redact PDF</h1>
+                <p data-i18n-text="desc.pdf.redact">Permanently black-out sensitive text from PDF files.</p>
+            </div>
+            <button class="favorite-btn" data-tool="pdf.redact" aria-label="Toggle Favorite" onclick="toggleFavorite(this, 'pdf.redact')">
+                <i class="bi bi-star"></i>
+            </button>
+        </div>
+    </div>
+
+    <form id="redactForm" onsubmit="handleRedact(event)">
+        <div class="upload-zone" id="upload-zone">
+            <input type="file" id="file-input" name="files" accept=".pdf">
+            <div class="upload-prompt" id="upload-prompt">
+                <div class="upload-icon-wrap">
+                    <i class="bi bi-cloud-arrow-up"></i>
+                </div>
+                <p class="upload-title" data-i18n-text="upload.drag">Drag &amp; drop file(s) here</p>
+                <span class="upload-subtitle" data-i18n-text="upload.browse">or click to browse</span>
+                <span class="upload-accepted">.pdf</span>
+            </div>
+            <div class="file-list" id="file-list"></div>
+        </div>
+
+        <div class="tool-options" style="margin-top: 20px;">
+            <div class="form-group option-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label data-i18n-text="label.redact_terms" style="margin: 0;">Text to Redact (one per line):</label>
+                    <label class="checkbox-label" style="margin: 0;">
+                        <input type="checkbox" id="isRegex" name="is_regex">
+                        <span data-i18n-text="label.use_regex">Treat as Regex</span>
+                    </label>
+                </div>
+                <textarea id="terms" name="terms" class="text-input" rows="5" placeholder="e.g. 1234-5678-9012-3456&#10;confidential&#10;John Doe" required style="font-family: monospace;"></textarea>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="redactBtn">
+            <span class="btn-text"><i class="bi bi-eraser-fill"></i> <span data-i18n-text="btn.redact">Redact Text</span></span>
+            <span class="btn-loading" style="display:none">
+                <i class="bi bi-arrow-repeat spin"></i> <span data-i18n-text="upload.processing">Processing...</span>
+            </span>
+        </button>
+    </form>
+</div>
+
+<script>
+async function handleRedact(e) {
+    e.preventDefault();
+    const form = e.target;
+    const btn = document.getElementById('redactBtn');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoading = btn.querySelector('.btn-loading');
+    
+    if (typeof selectedFiles === 'undefined' || selectedFiles.length === 0) {
+        alert(typeof t === 'function' ? t('error.no_file') : 'Please select a file.');
+        return;
+    }
+
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'inline-block';
+    btn.disabled = true;
+
+    const formData = new FormData(form);
+    formData.delete("files");
+    selectedFiles.forEach(f => formData.append("files", f));
+
+    try {
+        const response = await fetch('/pdf/redact', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            let errMsg = 'Redaction failed';
+            try {
+                const data = await response.json();
+                if (data.error) errMsg = data.error;
+            } catch (e) {}
+            throw new Error(errMsg);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        let dlName = selectedFiles[0].name.replace(/\.pdf$/i, '') + '_redacted.pdf';
+        
+        const contentDisp = response.headers.get('Content-Disposition');
+        if (contentDisp && contentDisp.indexOf('filename=') !== -1) {
+            const matches = contentDisp.match(/filename="([^"]+)"/);
+            if (matches && matches[1]) dlName = matches[1];
+        }
+        
+        a.download = dlName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        try { logActivity('Redact PDF'); } catch(e){}
+    } catch (err) {
+        alert(err.message);
+    } finally {
+        btnText.style.display = 'inline-block';
+        btnLoading.style.display = 'none';
+        btn.disabled = false;
+    }
+}
+</script>
+{% endblock %}

@@ -23,7 +23,8 @@
 .bi-braces::before { content: "{}"; font-size: 0.9em; font-weight: 700; }
 .bi-calculator::before,
 .bi-calculator-fill::before { content: "\1F5A9"; }
-.bi-calendar-date-fill::before { content: "\1F4C5"; }
+.bi-calendar-date-fill::before,
+.bi-calendar-week-fill::before { content: "\1F4C5"; }
 .bi-card-text::before { content: "\1F5B9"; }
 .bi-check-circle::before,
 .bi-check-circle-fill::before { content: "\2714"; }
@@ -34,6 +35,7 @@
 .bi-clock-fill::before,
 .bi-clock-history::before { content: "\1F553"; }
 .bi-cloud-arrow-up::before { content: "\21E7"; }
+.bi-code-slash::before { content: "</>"; font-size: 0.8em; font-weight: 700; }
 .bi-crop::before { content: "\229F"; }
 .bi-download::before { content: "\2B07"; }
 .bi-eraser-fill::before { content: "\232B"; }
@@ -61,12 +63,17 @@
 .bi-file-zip-fill::before { content: "\1F5DC"; }
 .bi-files::before { content: "\1F4D1"; }
 .bi-filetype-html::before { content: "<>"; font-size: 0.8em; font-weight: 700; }
+.bi-filetype-css::before { content: "CSS"; font-size: 0.7em; font-weight: 700; }
+.bi-filetype-js::before { content: "JS"; font-size: 0.8em; font-weight: 700; }
+.bi-filetype-sql::before { content: "SQL"; font-size: 0.65em; font-weight: 700; }
+.bi-filetype-xml::before { content: "XML"; font-size: 0.65em; font-weight: 700; }
 .bi-filetype-yml::before { content: "Y"; font-size: 0.85em; font-weight: 700; }
 .bi-film::before { content: "\1F39E"; }
 .bi-fingerprint::before { content: "\25CC"; }
 .bi-hash::before { content: "#"; font-weight: 700; }
 .bi-hdd-network-fill::before { content: "\2398"; }
 .bi-info-circle-fill::before { content: "\2139"; }
+.bi-key::before,
 .bi-key-fill::before { content: "\1F511"; }
 .bi-lightning-charge-fill::before { content: "\26A1"; }
 .bi-link::before,
@@ -92,6 +99,8 @@
 .bi-trash::before { content: "\1F5D1"; }
 .bi-translate::before { content: "\1F310"; }
 .bi-type-bold::before { content: "B"; font-weight: 700; }
+.bi-ui-checks::before { content: "\2611"; }
 .bi-union::before { content: "\222A"; }
 .bi-unlock-fill::before { content: "\1F513"; }
 .bi-water::before { content: "\223C"; }
+.bi-window::before { content: "\1F5D4"; }

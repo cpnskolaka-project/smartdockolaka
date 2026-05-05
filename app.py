@@ -50,6 +50,8 @@ TOOL_CATEGORIES = [
             {"id": "signature", "name": "PDF Signature", "desc": "Stamp signature image onto PDF pages", "icon": "bi-vector-pen"},
             {"id": "protect", "name": "Protect PDF", "desc": "Add password protection to PDF", "icon": "bi-lock-fill"},
             {"id": "unlock", "name": "Unlock PDF", "desc": "Remove PDF password", "icon": "bi-unlock-fill"},
+            {"id": "redact", "name": "Redact PDF", "desc": "Permanently black-out sensitive text", "icon": "bi-eraser-fill"},
+            {"id": "form-fill", "name": "Fill PDF Form", "desc": "Fill AcroForm interactive fields", "icon": "bi-ui-checks"},
         ],
     },
     {
@@ -144,6 +146,23 @@ TOOL_CATEGORIES = [
             {"id": "ping", "name": "Cek Ping", "desc": "Periksa konektivitas dan latensi jaringan", "icon": "bi-activity"},
         ],
     },
+    {
+        "id": "dev",
+        "name": "Developer Utilities",
+        "icon": "bi-code-slash",
+        "tools": [
+            {"id": "uuid", "name": "UUID Generator", "desc": "Generate v4 UUIDs (bulk supported)", "icon": "bi-hash"},
+            {"id": "jwt", "name": "JWT Decoder", "desc": "Decode JWT tokens (client-side)", "icon": "bi-key"},
+            {"id": "user-agent", "name": "User-Agent Parser", "desc": "Parse browser, OS, and device info", "icon": "bi-window"},
+            {"id": "sql-format", "name": "SQL Formatter", "desc": "Pretty-print SQL with keyword casing", "icon": "bi-filetype-sql"},
+            {"id": "xml-format", "name": "XML Formatter", "desc": "Format, validate, and minify XML", "icon": "bi-filetype-xml"},
+            {"id": "html-format", "name": "HTML Formatter", "desc": "Beautify or minify HTML", "icon": "bi-filetype-html"},
+            {"id": "css-format", "name": "CSS Formatter", "desc": "Beautify or minify CSS", "icon": "bi-filetype-css"},
+            {"id": "js-format", "name": "JS Formatter", "desc": "Beautify or minify JavaScript", "icon": "bi-filetype-js"},
+            {"id": "cron", "name": "Cron Parser", "desc": "Validate cron and preview runs", "icon": "bi-calendar-week-fill"},
+            {"id": "jsonpath", "name": "JSONPath Tester", "desc": "Query JSON with JSONPath expressions", "icon": "bi-search"},
+        ],
+    },
 ]
 
 
@@ -165,6 +184,8 @@ ENDPOINT_NAMES.update({
     "pdf.process_delete": "Delete Pages",
     "pdf.process_watermark": "PDF Watermark",
     "pdf.process_signature": "PDF Signature",
+    "pdf.process_redact": "Redact PDF",
+    "pdf.process_form_fill": "Fill PDF Form",
     "convert.process_pdf_excel": "PDF to Excel",
     "network.process_ping": "Cek Ping",
 })
@@ -172,6 +193,8 @@ ENDPOINT_CATEGORIES.update({
     "pdf.process_delete": "PDF Tools",
     "pdf.process_watermark": "PDF Tools",
     "pdf.process_signature": "PDF Tools",
+    "pdf.process_redact": "PDF Tools",
+    "pdf.process_form_fill": "PDF Tools",
     "convert.process_pdf_excel": "Document Conversion",
     "network.process_ping": "Alat Jaringan",
 })
@@ -195,6 +218,9 @@ UPLOAD_POLICIES = {
     "pdf.unlock": {"accept": ".pdf"},
     "pdf.process_delete": {"accept": ".pdf"},
     "pdf.process_watermark": {"accept": ".pdf"},
+    "pdf.process_redact": {"accept": ".pdf"},
+    "pdf.parse_form": {"accept": ".pdf"},
+    "pdf.process_form_fill": {"accept": ".pdf"},
     "spreadsheet.excel_to_csv": {"accept": ".xlsx,.xlsm,.xls"},
     "spreadsheet.csv_to_excel": {"accept": ".csv,.json"},
     "spreadsheet.excel_to_pdf": {"accept": ".xlsx,.xlsm,.xls"},
@@ -367,6 +393,7 @@ from routes.qr_tools import bp as qr_bp
 from routes.security_tools import bp as security_bp
 from routes.spreadsheet_tools import bp as spreadsheet_bp
 from routes.network_tools import bp as network_bp
+from routes.dev_tools import bp as dev_bp
 
 app.register_blueprint(convert_bp, url_prefix="/convert")
 app.register_blueprint(pdf_bp, url_prefix="/pdf")
@@ -377,6 +404,7 @@ app.register_blueprint(qr_bp, url_prefix="/qr")
 app.register_blueprint(security_bp, url_prefix="/security")
 app.register_blueprint(spreadsheet_bp, url_prefix="/spreadsheet")
 app.register_blueprint(network_bp, url_prefix="/network")
+app.register_blueprint(dev_bp, url_prefix="/dev")
 
 if __name__ == "__main__":
     app.run(host=app.config["HOST"], port=app.config["PORT"], debug=app.config["DEBUG"])

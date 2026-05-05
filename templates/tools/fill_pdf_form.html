@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}Fill PDF Form - SmartDoc Kolaka{% endblock %}
+{% block top_title %}Fill PDF Form{% endblock %}
+
+{% block content %}
+<div class="tool-page">
+    <div class="tool-header">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h1 data-i18n-text="tool.pdf.form-fill">Fill PDF Form</h1>
+                <p data-i18n-text="desc.pdf.form-fill">Fill AcroForm interactive fields and download the filled PDF.</p>
+            </div>
+            <button class="favorite-btn" data-tool="pdf.form-fill" aria-label="Toggle Favorite" onclick="toggleFavorite(this, 'pdf.form-fill')">
+                <i class="bi bi-star"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Step 1: Upload PDF -->
+    <div id="step1">
+        <form id="uploadForm" onsubmit="handleUpload(event)">
+            <div class="upload-zone" id="upload-zone">
+                <input type="file" id="file-input" name="files" accept=".pdf">
+                <div class="upload-prompt" id="upload-prompt">
+                    <div class="upload-icon-wrap">
+                        <i class="bi bi-cloud-arrow-up"></i>
+                    </div>
+                    <p class="upload-title" data-i18n-text="upload.drag">Drag &amp; drop file(s) here</p>
+                    <span class="upload-subtitle" data-i18n-text="upload.browse">or click to browse</span>
+                    <span class="upload-accepted">.pdf</span>
+                </div>
+                <div class="file-list" id="file-list"></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary mt-4" id="uploadBtn">
+                <span class="btn-text"><i class="bi bi-file-earmark-arrow-up-fill"></i> <span data-i18n-text="btn.read_form">Read Form Fields</span></span>
+                <span class="btn-loading" style="display:none">
+                    <i class="bi bi-arrow-repeat spin"></i> <span data-i18n-text="upload.processing">Processing...</span>
+                </span>
+            </button>
+        </form>
+    </div>
+
+    <!-- Step 2: Fill Form -->
+    <div id="step2" style="display:none;">
+        <h2 class="mb-3" data-i18n-text="title.fill_fields" style="font-size: 1.25rem; font-weight: 600; margin-bottom: 20px;">Fill Form Fields</h2>
+        <form id="fillForm" onsubmit="handleFill(event)">
+            <div id="formFieldsContainer" class="tool-options" style="margin-bottom: 24px;">
+                <!-- Dynamic fields will be inserted here -->
+            </div>
+            
+            <div style="display: flex; gap: 12px;">
+                <button type="button" class="btn btn-secondary" onclick="resetStep()">
+                    <i class="bi bi-arrow-left"></i> <span data-i18n-text="btn.back">Back</span>
+                </button>
+                <button type="submit" class="btn btn-success" id="fillBtn">
+                    <span class="btn-text"><i class="bi bi-check-circle-fill"></i> <span data-i18n-text="btn.download_filled">Download Filled PDF</span></span>
+                    <span class="btn-loading" style="display:none">
+                        <i class="bi bi-arrow-repeat spin"></i> <span data-i18n-text="upload.processing">Processing...</span>
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// PyMuPDF widget types (from fitz)
+const PDF_WIDGET_TYPE_TEXT = 7;
+const PDF_WIDGET_TYPE_CHECKBOX = 2;
+const PDF_WIDGET_TYPE_LISTBOX = 4;
+const PDF_WIDGET_TYPE_COMBOBOX = 3;
+const PDF_WIDGET_TYPE_RADIOBUTTON = 5;
+
+let currentPdfFile = null;
+
+async function handleUpload(e) {
+    e.preventDefault();
+    if (typeof selectedFiles === 'undefined' || selectedFiles.length === 0) {
+        alert(typeof t === 'function' ? t('error.no_file') : 'Please select a file.');
+        return;
+    }
+    
+    currentPdfFile = selectedFiles[0];
+    
+    const btn = document.getElementById('uploadBtn');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoading = btn.querySelector('.btn-loading');
+    
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'inline-block';
+    btn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('files', currentPdfFile);
+
+    try {
+        const response = await fetch('/pdf/parse-form', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            let errMsg = 'Failed to parse PDF';
+            try {
+                const data = await response.json();
+                if (data.error) errMsg = data.error;
+            } catch (e) {}
+            throw new Error(errMsg);
+        }
+
+        const data = await response.json();
+        if (data.fields && data.fields.length > 0) {
+            renderFormFields(data.fields);
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        } else {
+            alert("No interactive form fields (AcroForm) found in this PDF.");
+        }
+    } catch (err) {
+        alert(err.message);
+    } finally {
+        btnText.style.display = 'inline-block';
+        btnLoading.style.display = 'none';
+        btn.disabled = false;
+    }
+}
+
+function renderFormFields(fields) {
+    const container = document.getElementById('formFieldsContainer');
+    container.innerHTML = '';
+    
+    fields.forEach(field => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'form-group option-group';
+        
+        const label = document.createElement('label');
+        label.textContent = field.label;
+        wrapper.appendChild(label);
+        
+        if (field.type === PDF_WIDGET_TYPE_TEXT) {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'field-input';
+            input.dataset.fieldName = field.name;
+            input.value = field.value || '';
+            wrapper.appendChild(input);
+        } 
+        else if (field.type === PDF_WIDGET_TYPE_CHECKBOX) {
+            const checkLabel = document.createElement('label');
+            checkLabel.className = 'checkbox-label';
+            
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.className = 'field-input';
+            input.dataset.fieldName = field.name;
+            input.checked = field.value === true || field.value === "Yes" || field.value === "On";
+            
+            const span = document.createElement('span');
+            span.textContent = 'Check this box';
+            
+            checkLabel.appendChild(input);
+            checkLabel.appendChild(span);
+            wrapper.appendChild(checkLabel);
+        }
+        else if (field.type === PDF_WIDGET_TYPE_COMBOBOX || field.type === PDF_WIDGET_TYPE_LISTBOX) {
+            const select = document.createElement('select');
+            select.className = 'field-input';
+            select.dataset.fieldName = field.name;
+            
+            if (field.choices && field.choices.length > 0) {
+                field.choices.forEach(choice => {
+                    const option = document.createElement('option');
+                    // choice can be string or [value, display_name]
+                    if (Array.isArray(choice)) {
+                        option.value = choice[0];
+                        option.textContent = choice[1] || choice[0];
+                    } else {
+                        option.value = choice;
+                        option.textContent = choice;
+                    }
+                    if (field.value === option.value) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+            } else {
+                // If no choices but it's a combobox, just render a text input
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'field-input';
+                input.dataset.fieldName = field.name;
+                input.value = field.value || '';
+                wrapper.appendChild(input);
+                return;
+            }
+            wrapper.appendChild(select);
+        }
+        else if (field.type === PDF_WIDGET_TYPE_RADIOBUTTON) {
+            // Radio buttons usually have the same name but different values.
+            // PyMuPDF handles them a bit differently, often grouping them.
+            // For simplicity, we just provide a text input to set the value.
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'field-input';
+            input.dataset.fieldName = field.name;
+            input.value = field.value || '';
+            input.placeholder = "Enter radio option value";
+            wrapper.appendChild(input);
+        }
+        
+        container.appendChild(wrapper);
+    });
+}
+
+async function handleFill(e) {
+    e.preventDefault();
+    if (!currentPdfFile) return;
+
+    const btn = document.getElementById('fillBtn');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoading = btn.querySelector('.btn-loading');
+
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'inline-block';
+    btn.disabled = true;
+
+    // Collect data
+    const formDataObj = {};
+    const inputs = document.querySelectorAll('.field-input');
+    inputs.forEach(input => {
+        const name = input.dataset.fieldName;
+        if (input.type === 'checkbox') {
+            formDataObj[name] = input.checked;
+        } else {
+            formDataObj[name] = input.value;
+        }
+    });
+
+    const formData = new FormData();
+    formData.append('files', currentPdfFile);
+    formData.append('form_data', JSON.stringify(formDataObj));
+
+    try {
+        const response = await fetch('/pdf/form-fill', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            let errMsg = 'Failed to fill PDF';
+            try {
+                const data = await response.json();
+                if (data.error) errMsg = data.error;
+            } catch (e) {}
+            throw new Error(errMsg);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        
+        let dlName = currentPdfFile.name.replace(/\.pdf$/i, '') + '_filled.pdf';
+        
+        const contentDisp = response.headers.get('Content-Disposition');
+        if (contentDisp && contentDisp.indexOf('filename=') !== -1) {
+            const matches = contentDisp.match(/filename="([^"]+)"/);
+            if (matches && matches[1]) dlName = matches[1];
+        }
+        
+        a.download = dlName;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        try { logActivity('Fill PDF Form'); } catch(e){}
+    } catch (err) {
+        alert(err.message);
+    } finally {
+        btnText.style.display = 'inline-block';
+        btnLoading.style.display = 'none';
+        btn.disabled = false;
+    }
+}
+
+function resetStep() {
+    document.getElementById('step2').style.display = 'none';
+    document.getElementById('step1').style.display = 'block';
+    currentPdfFile = null;
+    
+    // reset visual file input
+    if (typeof selectedFiles !== 'undefined') {
+        selectedFiles = [];
+    }
+    const fileInput = document.getElementById('file-input');
+    fileInput.value = '';
+    const fileList = document.getElementById('file-list');
+    if (fileList) fileList.innerHTML = '';
+}
+</script>
+{% endblock %}

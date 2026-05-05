@@ -1,19 +1,33 @@
-# Core
-Flask
-Pillow
-PyMuPDF
-qrcode[pil]
-markdown
-reportlab
-img2pdf
-python-docx
-openpyxl
-xlrd
+# ══════════════════════════════════════════════════
+# SmartDoc Kolaka — Python Dependencies
+# ══════════════════════════════════════════════════
 
-# Optional (app works without these, shows install message if missing)
-rembg
-pyzbar
-pdf2docx
-pytesseract
-ezdxf
-matplotlib
+# ── Core (wajib, aplikasi tidak bisa jalan tanpa ini) ──
+Flask>=3.0
+Pillow>=10.0
+PyMuPDF>=1.23
+qrcode[pil]>=7.0
+markdown>=3.4
+reportlab>=4.0
+img2pdf>=0.5
+python-docx>=1.0
+openpyxl>=3.1
+xlrd>=2.0
+
+# ── Optional (aplikasi tetap jalan tanpa ini, fitur tertentu nonaktif) ──
+# PDF Tools
+pdf2docx>=0.5            # PDF to Word conversion
+pytesseract>=0.3         # OCR (requires Tesseract binary installed separately)
+
+# Image Tools
+rembg>=2.0               # Background removal (heavy ~300MB, lazy-loaded)
+pyzbar>=0.1              # QR/Barcode reading from image
+
+# CAD Tools
+ezdxf>=1.0               # DXF/DWG to PDF/Image conversion
+matplotlib>=3.5           # Required by ezdxf for rendering
+
+# Developer Utilities
+sqlparse>=0.5            # SQL formatter
+croniter>=1.0            # Cron expression parser
+jsonpath-ng>=1.5         # JSONPath tester

@@ -80,7 +80,11 @@ if /I "%ACTION%"=="install" set "NEEDS_INSTALL=1"
 if /I "%ACTION%"=="repair" set "NEEDS_INSTALL=1"
 
 if "%NEEDS_INSTALL%"=="1" (
-    echo [INFO] Menginstal atau memperbarui dependency...
+    rem ── Check and install system dependencies ──
+    call :install_system_deps
+
+    echo [INFO] Menginstal atau memperbarui dependency Python...
+    python -m pip install --upgrade pip >nul 2>nul
     call %PIP_INSTALL_CMD%
     if errorlevel 1 (
         echo [ERROR] Instalasi dependency gagal.
@@ -144,6 +148,41 @@ if /I "%ACTION%"=="autostart" (
     echo [INFO] Konfigurasi autostart akan ditawarkan ulang.
     set "ACTION=start"
 )
+goto :eof
+
+:install_system_deps
+echo.
+echo ==============================================
+echo [INFO] Memeriksa system dependency...
+echo ==============================================
+
+rem ── Check Tesseract OCR ──
+where tesseract >nul 2>nul
+if errorlevel 1 (
+    echo [WARN] Tesseract OCR tidak ditemukan di PATH.
+    echo [INFO] Fitur OCR memerlukan Tesseract. Silakan download dan install dari:
+    echo        https://github.com/UB-Mannheim/tesseract/wiki
+    echo [INFO] Saat instalasi, centang "Add to PATH" atau tambahkan secara manual.
+    echo [INFO] Setelah terinstal, restart file ini agar terdeteksi.
+) else (
+    echo [OK] Tesseract OCR ditemukan.
+)
+
+rem ── Check zbar (for pyzbar / QR code reading) ──
+rem On Windows, pyzbar ships its own DLLs so no manual install needed.
+echo [OK] zbar: pyzbar untuk Windows sudah menyertakan DLL bawaan.
+
+rem ── Check ODA File Converter (optional, for DWG support) ──
+where ODAFileConverter >nul 2>nul
+if errorlevel 1 (
+    echo [INFO] ODA File Converter tidak ditemukan. Fitur konversi DWG opsional.
+    echo        Untuk dukungan DWG, instal ODA File Converter dan tambahkan ke PATH.
+) else (
+    echo [OK] ODA File Converter ditemukan.
+)
+
+echo [INFO] Pemeriksaan system dependency selesai.
+echo.
 goto :eof
 
 :ensure_autostart_choice

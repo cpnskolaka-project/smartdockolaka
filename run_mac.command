@@ -96,6 +96,52 @@ PLIST
     fi
 }
 
+install_system_deps() {
+    echo
+    echo "=============================================="
+    echo "[INFO] Memeriksa system dependency..."
+    echo "=============================================="
+
+    # --- Homebrew (macOS package manager) ---
+    if ! command -v brew >/dev/null 2>&1; then
+        echo "[WARN] Homebrew tidak ditemukan."
+        echo "[INFO] Homebrew diperlukan untuk memasang dependency sistem (zbar, tesseract, dll)."
+        echo "[INFO] Instal Homebrew: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+        echo "[INFO] Setelah terinstal, jalankan kembali file ini."
+        HAS_BREW=0
+    else
+        HAS_BREW=1
+        echo "[OK] Homebrew ditemukan: $(brew --prefix)"
+    fi
+
+    # --- zbar (required by pyzbar for QR/Barcode reading) ---
+    if [[ "$HAS_BREW" -eq 1 ]]; then
+        if brew list zbar >/dev/null 2>&1; then
+            echo "[OK] zbar sudah terinstal."
+        else
+            echo "[INFO] Menginstal zbar (diperlukan untuk pembacaan QR/Barcode)..."
+            brew install zbar || echo "[WARN] Gagal menginstal zbar. Fitur pembacaan QR/Barcode mungkin tidak berfungsi."
+        fi
+    fi
+
+    # --- Tesseract OCR (optional, for OCR features) ---
+    if command -v tesseract >/dev/null 2>&1; then
+        echo "[OK] Tesseract OCR ditemukan: $(tesseract --version 2>&1 | head -1)"
+    else
+        if [[ "$HAS_BREW" -eq 1 ]]; then
+            echo "[INFO] Menginstal Tesseract OCR (diperlukan untuk fitur OCR)..."
+            brew install tesseract || echo "[WARN] Gagal menginstal Tesseract. Fitur OCR mungkin tidak berfungsi."
+            # Install Indonesian language pack
+            brew install tesseract-lang 2>/dev/null || echo "[INFO] Paket bahasa tambahan Tesseract tidak tersedia. Anda dapat menambahkan traineddata secara manual."
+        else
+            echo "[WARN] Tesseract OCR tidak ditemukan. Fitur OCR memerlukan instalasi Tesseract secara manual."
+        fi
+    fi
+
+    echo "[INFO] Pemeriksaan system dependency selesai."
+    echo
+}
+
 echo "=============================================="
 echo "$APP_NAME - Installer dan Local Runner"
 echo "=============================================="
@@ -158,7 +204,11 @@ if [[ "$ACTION" == "install" || "$ACTION" == "repair" ]]; then
 fi
 
 if [[ "$NEEDS_INSTALL" -eq 1 ]]; then
-    echo "[INFO] Menginstal atau memperbarui dependency..."
+    # Install system dependencies first (zbar, tesseract, etc.)
+    install_system_deps
+
+    echo "[INFO] Menginstal atau memperbarui dependency Python..."
+    python -m pip install --upgrade pip >/dev/null 2>&1 || true
     if ! "${PIP_INSTALL[@]}"; then
         echo "[ERROR] Instalasi dependency gagal."
         echo "[INFO] Pastikan koneksi internet tersedia saat instalasi pertama atau saat reinstall/repair."

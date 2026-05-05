@@ -860,3 +860,142 @@ def process_signature():
 
     except Exception as e:
         return jsonify(error=f"Failed to stamp signature: {str(e)}"), 500
+
+# ── Redact PDF ───────────────────────────────────
+
+@bp.route("/redact")
+def redact_page():
+    return render_template("tools/redact_pdf.html",
+        title="Redact PDF",
+        description="Permanently black-out sensitive text from PDF files",
+        endpoint="/pdf/redact")
+
+@bp.route("/redact", methods=["POST"])
+def process_redact():
+    files = request.files.getlist("files")
+    if not files or not files[0].filename:
+        return jsonify(error="No file uploaded."), 400
+
+    terms_str = request.form.get("terms", "").strip()
+    is_regex = request.form.get("is_regex") == "on"
+
+    if not terms_str:
+        return jsonify(error="Please enter at least one term to redact."), 400
+
+    terms = [t.strip() for t in terms_str.split('\n') if t.strip()]
+
+    try:
+        import re
+        doc = fitz.open(stream=files[0].read(), filetype="pdf")
+
+        for page in doc:
+            for term in terms:
+                if is_regex:
+                    # Extract text, find all occurrences, then search_for them
+                    text = page.get_text()
+                    try:
+                        matches = [m.group() for m in re.finditer(term, text)]
+                    except re.error as e:
+                        return jsonify(error=f"Invalid regex '{term}': {str(e)}"), 400
+                    
+                    # Deduplicate matches to speed up search
+                    for match_str in set(matches):
+                        if not match_str.strip(): continue
+                        rects = page.search_for(match_str)
+                        for rect in rects:
+                            page.add_redact_annot(rect, fill=(0, 0, 0))
+                else:
+                    rects = page.search_for(term)
+                    for rect in rects:
+                        page.add_redact_annot(rect, fill=(0, 0, 0))
+            
+            page.apply_redactions()
+
+        output = io.BytesIO()
+        doc.save(output, garbage=4, deflate=True)
+        doc.close()
+        output.seek(0)
+
+        name = files[0].filename.rsplit(".", 1)[0] + "_redacted.pdf"
+        return send_file(output, mimetype="application/pdf",
+                         as_attachment=True, download_name=name)
+    except Exception as e:
+        return jsonify(error=f"Failed to redact PDF: {str(e)}"), 500
+
+# ── Fill PDF Form ────────────────────────────────
+
+@bp.route("/form-fill")
+def form_fill_page():
+    return render_template("tools/fill_pdf_form.html",
+        title="Fill PDF Form",
+        description="Fill AcroForm interactive fields and download the filled PDF",
+        endpoint="/pdf/form-fill")
+
+@bp.route("/parse-form", methods=["POST"])
+def parse_form():
+    files = request.files.getlist("files")
+    if not files or not files[0].filename:
+        return jsonify(error="No file uploaded."), 400
+
+    try:
+        doc = fitz.open(stream=files[0].read(), filetype="pdf")
+        fields = []
+        
+        for page in doc:
+            for widget in page.widgets():
+                w_type = widget.field_type
+                if w_type not in (fitz.PDF_WIDGET_TYPE_TEXT, fitz.PDF_WIDGET_TYPE_CHECKBOX, fitz.PDF_WIDGET_TYPE_RADIOBUTTON, fitz.PDF_WIDGET_TYPE_COMBOBOX, fitz.PDF_WIDGET_TYPE_LISTBOX):
+                    continue
+                    
+                field_data = {
+                    "name": widget.field_name,
+                    "label": widget.field_label or widget.field_name,
+                    "value": widget.field_value,
+                    "type": w_type,
+                    "type_name": widget.field_type_string
+                }
+                
+                if w_type in (fitz.PDF_WIDGET_TYPE_COMBOBOX, fitz.PDF_WIDGET_TYPE_LISTBOX):
+                    field_data["choices"] = widget.choice_values
+                
+                fields.append(field_data)
+        
+        doc.close()
+        return jsonify(fields=fields)
+    except Exception as e:
+        return jsonify(error=f"Failed to parse PDF form: {str(e)}"), 500
+
+@bp.route("/form-fill", methods=["POST"])
+def process_form_fill():
+    files = request.files.getlist("files")
+    if not files or not files[0].filename:
+        return jsonify(error="No file uploaded."), 400
+
+    try:
+        import json
+        form_data_str = request.form.get("form_data", "{}")
+        form_data = json.loads(form_data_str)
+        
+        doc = fitz.open(stream=files[0].read(), filetype="pdf")
+        
+        for page in doc:
+            for widget in page.widgets():
+                if widget.field_name in form_data:
+                    new_val = form_data[widget.field_name]
+                    # Handle boolean for checkboxes
+                    if widget.field_type == fitz.PDF_WIDGET_TYPE_CHECKBOX:
+                        widget.field_value = bool(new_val)
+                    else:
+                        widget.field_value = str(new_val)
+                    widget.update()
+        
+        output = io.BytesIO()
+        doc.save(output)
+        doc.close()
+        output.seek(0)
+
+        name = files[0].filename.rsplit(".", 1)[0] + "_filled.pdf"
+        return send_file(output, mimetype="application/pdf",
+                         as_attachment=True, download_name=name)
+    except Exception as e:
+        return jsonify(error=f"Failed to fill PDF form: {str(e)}"), 500
